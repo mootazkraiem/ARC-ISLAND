@@ -67,3 +67,13 @@ jobs:
           echo "Found app bundle: $APP_PATH"
           mkdir -p Payload
           cp -R "$APP_PATH" Payload/
+          zip -r -y ArcIsland-unsigned.ipa Payload
+          mkdir -p ../ipa-output
+          mv ArcIsland-unsigned.ipa ../ipa-output/
+
+      - name: Upload the .ipa as a downloadable build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcIsland-unsigned-ipa
+          path: ipa-output/ArcIsland-unsigned.ipa
+          retention-days: 30
