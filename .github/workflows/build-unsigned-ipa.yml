@@ -28,8 +28,10 @@ jobs:
       - name: Generate the native iOS project (expo prebuild)
         run: npx expo prebuild --platform ios --clean --no-install
 
-      - name: Install CocoaPods dependencies
+      - name: Install CocoaPods dependencies (build React Native from source)
         working-directory: ios
+        env:
+          RCT_USE_PREBUILT_RNCORE: "0"
         run: pod install
 
       - name: Find the generated workspace + scheme
