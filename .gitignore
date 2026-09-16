@@ -1,0 +1,26 @@
+# Local secrets — never commit your real OpenRouter key. See .env.example
+# for the variable name; your actual value goes in .env, which this ignores.
+.env
+.env.local
+.env.*.local
+
+# Expo / React Native
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native build output (if this is ever run through `expo prebuild`)
+ios/
+android/
+
+# Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+
+# OS / editor
+.DS_Store
+.vscode/

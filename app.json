@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Remind",
+    "slug": "remind-mvp",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#040407",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "backgroundColor": "#040407"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.remind.mvp",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"],
+        "NSMicrophoneUsageDescription": "Nudge listens when you tap the mic so it can turn your voice into a reminder."
+      }
+    },
+    "android": {
+      "package": "com.remind.mvp",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#040407"
+      },
+      "permissions": [
+        "SCHEDULE_EXACT_ALARM",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "RECORD_AUDIO"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#7C5CFF",
+          "mode": "production",
+          "sounds": ["./assets/sounds/reminder_alarm.wav"]
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Nudge listens when you tap the mic so it can turn your voice into a reminder.",
+          "enableBackgroundRecording": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {}
+    }
+  }
+}
