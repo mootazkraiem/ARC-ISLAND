@@ -1,0 +1,91 @@
+name: Build unsigned iOS .ipa (for SideStore)
+
+# Produces a compiled-but-UNSIGNED Arc Island .ipa for a real iPhone (arm64,
+# not the Simulator), with zero Apple account involved at build time —
+# CODE_SIGNING_ALLOWED=NO tells Xcode to skip code signing entirely, which
+# is a normal, supported xcodebuild mode for exactly this "sign it with
+# something else later" case. SideStore (on your iPhone, with your own free
+# Apple ID) does the actual Apple-required signing afterward, at install
+# time — that's the only place any Apple account is used in this whole
+# pipeline. This workflow does not touch EAS, does not need an Expo
+# account, and does not need any Apple Developer Program membership, free
+# or paid.
+#
+# Runs on GitHub's hosted macOS runner (that's the one piece of this that
+# genuinely requires a Mac — GitHub provides it, not you). Free on public
+# repos; a limited free quota on private repos (macOS minutes count 10x
+# against the monthly free minutes on a private repo — see the README
+# section this workflow was delivered alongside for the exact numbers).
+#
+# Trigger manually from the Actions tab ("Run workflow"), or it runs
+# automatically on every push to main.
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main, master]
+
+jobs:
+  build-unsigned-ipa:
+    runs-on: macos-14
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install JS dependencies
+        run: npm install
+
+      - name: Generate the native iOS project (expo prebuild)
+        run: npx expo prebuild --platform ios --clean --no-install
+
+      - name: Install CocoaPods dependencies
+        working-directory: ios
+        run: pod install
+
+      - name: Find the generated workspace + scheme
+        id: xcode
+        working-directory: ios
+        run: |
+          WORKSPACE=$(ls -d *.xcworkspace | head -n 1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          echo "workspace=$WORKSPACE" >> "$GITHUB_OUTPUT"
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+          echo "Found workspace: $WORKSPACE, scheme: $SCHEME"
+
+      - name: Build for a real device, unsigned
+        working-directory: ios
+        run: |
+          xcodebuild build \
+            -workspace "${{ steps.xcode.outputs.workspace }}" \
+            -scheme "${{ steps.xcode.outputs.scheme }}" \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS=""
+
+      - name: Package the .app into an unsigned .ipa
+        working-directory: ios
+        run: |
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -maxdepth 1 -name "*.app" | head -n 1)
+          echo "Found app bundle: $APP_PATH"
+          mkdir -p Payload
+          cp -R "$APP_PATH" Payload/
+          zip -r -y ArcIsland-unsigned.ipa Payload
+          mkdir -p ../ipa-output
+          mv ArcIsland-unsigned.ipa ../ipa-output/
+
+      - name: Upload the .ipa as a downloadable build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArcIsland-unsigned-ipa
+          path: ipa-output/ArcIsland-unsigned.ipa
+          retention-days: 30

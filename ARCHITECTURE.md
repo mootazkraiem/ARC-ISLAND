@@ -2,7 +2,7 @@
 
 This document explains two layers built on top of the reminder engine:
 progression (XP/skills/streaks/cards) and, further down, the thought/idea/
-project intelligence layer (Nudge deciding whether something you said is a
+project intelligence layer (Arc Island deciding whether something you said is a
 reminder, a task, an idea, or a project). Read this before adding a new
 skill, card, challenge, idea kind, or hooking something new into completion
 events.
@@ -28,7 +28,7 @@ completeReminder(id)
 ```
 
 Every "I did this" moment in the app — swipe-done on Home, the Today's Path
-checklist, the notification's Done action, and Nudge's `complete_reminder`
+checklist, the notification's Done action, and Arc Island's `complete_reminder`
 tool — all call this exact function. There is one funnel, not four separate
 XP-granting code paths to keep in sync.
 
@@ -51,7 +51,7 @@ evaluateUnlocks()                  → checks every CardDefinition.getProgress()
         ↓
 persisted to AsyncStorage (separate key from reminders)
         ↓
-CompletionResult returned to caller (UI reacts: toast, haptics, Nudge's reply)
+CompletionResult returned to caller (UI reacts: toast, haptics, Arc Island's reply)
 ```
 
 ## Domain models (`src/progression/types.ts`)
@@ -73,7 +73,7 @@ CompletionResult returned to caller (UI reacts: toast, haptics, Nudge's reply)
   else from the reminder model.
 - **`CompletionResult`** — the output: XP gained, per-skill gains, whether
   the user leveled up, the new streak, and any cards unlocked this
-  completion. Every caller (UI, Nudge) reacts to this, never to internal
+  completion. Every caller (UI, Arc Island) reacts to this, never to internal
   engine state directly.
 
 ## Why challenges are just "featured locked cards," not a second system
@@ -144,11 +144,11 @@ and a `goalText` string for the Progress screen to show.
 in `levels.ts` — one function, one place to change the curve. Skills use
 the same curve applied to their own XP total.
 
-**Let Nudge do something new.** Add a tool definition to
+**Let Arc Island do something new.** Add a tool definition to
 `toolDefinitions` in `src/assistant/tools.ts`, handle it in `executeTool`,
 and mention it in the system prompt in `AssistantScreen.tsx`. The tool
 executor already has access to the reminders array and the same
-`completeReminder`/create/delete callbacks the UI uses — Nudge is not a
+`completeReminder`/create/delete callbacks the UI uses — Arc Island is not a
 separate integration, it calls the exact same functions a button press
 would.
 
@@ -196,7 +196,7 @@ care where `CARD_DEFINITIONS` came from.
 
 ## The thought/idea/project layer (`src/thoughts/`)
 
-The problem this solves: not everything you tell Nudge is a reminder.
+The problem this solves: not everything you tell Arc Island is a reminder.
 "Walk the dog at 10" and "what if we built a global progression world" are
 completely different kinds of input, and treating both as "create a
 reminder" either spams your schedule with vague non-actionable junk, or
@@ -205,9 +205,9 @@ mangles a real idea into a fake task with a made-up due date.
 ### Where classification actually happens
 
 There is no separate classifier function, model, or module. **Classification
-is Nudge's system prompt plus which tools are available**, not a deterministic
+is Arc Island's system prompt plus which tools are available**, not a deterministic
 parser. This was a deliberate architectural choice: the spec calls for using
-"the LLM classification capability already available through Nudge," and
+"the LLM classification capability already available through Arc Island," and
 building a second, rule-based classifier alongside it would be exactly the
 kind of duplicated business logic the brief warned against. The taxonomy
 (Reminder / Task-Goal / Idea / Thought / Note / Experiment / Project) is
@@ -255,7 +255,7 @@ Voice interfaces can't show a modal `Alert.alert()` mid-conversation the way
 a button press can. Instead, `update_idea_status` with `status: "dismissed"`
 is a two-call protocol: the first call (no `confirmed` flag) looks the idea
 up and returns `{ needsConfirmation: true, matchedTitle }` without changing
-anything; the system prompt instructs Nudge to read that name back and ask
+anything; the system prompt instructs Arc Island to read that name back and ask
 for a clear yes; only a second call with `confirmed: true` actually changes
 the status. This is the same underlying principle as the existing
 `Alert.alert` confirmation on deleting a reminder from the UI — "destructive
@@ -270,7 +270,7 @@ store (no LLM needed — a status change is trivial). Promotion is different:
 generating a good, small, honest first milestone and first task is exactly
 the kind of judgment call an LLM is suited for and a hand-written template
 isn't, so the screen intentionally doesn't duplicate that logic — it points
-back to "ask Nudge to promote this." One place generates project structure,
+back to "ask Arc Island to promote this." One place generates project structure,
 not two.
 
 ### Extending this layer
@@ -283,7 +283,7 @@ back.
 **Add idea-vault UI actions** (e.g. a manual "snooze review 7 days"
 button). Call `Vault.setIdeaStatus(id, 'review', days)` directly from
 `IdeaVaultScreen.tsx` — no new plumbing needed, the method already exists
-because Nudge's `update_idea_status` tool uses it too.
+because Arc Island's `update_idea_status` tool uses it too.
 
 **Let projects grow real task lists later.** Right now a Project has one
 task by design (the brief explicitly warns against generating a fake full

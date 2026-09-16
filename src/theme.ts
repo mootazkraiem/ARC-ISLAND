@@ -20,7 +20,7 @@ export const colors = {
   raise: '#1B1B27',
 
   // The four accent hues. Each one means one thing — never mix their roles.
-  signal: '#7C5CFF', // primary accent / brand — Nudge, active states, rare rarity
+  signal: '#7C5CFF', // primary accent / brand — Arc Island, active states, rare rarity
   signalSoft: 'rgba(124, 92, 255, 0.16)',
   done: '#37E1B4', // completion, streaks, success, uncommon rarity
   doneSoft: 'rgba(55, 225, 180, 0.14)',
@@ -102,7 +102,7 @@ export const font = {
   label: { fontFamily: fontFamily.soraBold, fontSize: 11, fontWeight: '700' as const, letterSpacing: 2, color: colors.textFainter },
   // Manrope 17 semibold — row titles, primary actions
   rowTitle: { fontFamily: fontFamily.manropeSemiBold, fontSize: 15.5, fontWeight: '600' as const, color: colors.textSecondary },
-  // Manrope 14 medium — body copy, Nudge speech, card descriptions
+  // Manrope 14 medium — body copy, Arc Island speech, card descriptions
   body: { fontFamily: fontFamily.manropeMedium, fontSize: 14, fontWeight: '500' as const, color: colors.textDim },
   // Manrope 12 — metadata, times, skill tags
   caption: { fontFamily: fontFamily.manropeMedium, fontSize: 12, fontWeight: '500' as const, color: colors.textFaint },
@@ -121,7 +121,7 @@ export const motion = {
   mediumEasing: [0.2, 0.8, 0.2, 1] as const,
   signature: { duration: 900 }, // level-up ring sweep, discovery reveal
   burst: { duration: 600 }, // level-up burst / discovery ring burst
-  breathe: { duration: 3200 }, // Nudge orb idle loop, ±8% scale
+  breathe: { duration: 3200 }, // Arc Island orb idle loop, ±8% scale
 };
 
 /** A glow is a shadow, not a blur filter — RN has no CSS `box-shadow`.

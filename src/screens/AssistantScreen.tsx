@@ -49,7 +49,7 @@ interface Bubble {
 function systemPrompt(): string {
   const now = new Date();
   return [
-    'You are Nudge, a tiny, warm, no-nonsense voice assistant built into a personal progression system — reminders feed XP, skills, streaks, and a collectible card archive, and a separate Idea Vault holds things that are not yet actionable.',
+    'You are Arc Island, a tiny, warm, no-nonsense voice assistant built into a personal progression system — reminders feed XP, skills, streaks, and a collectible card archive, and a separate Idea Vault holds things that are not yet actionable.',
     'Keep every reply to one or two short sentences — it will be read aloud, so no lists, no markdown, no emoji.',
     `Right now it is ${now.toLocaleDateString('en-CA')} (YYYY-MM-DD) at ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} local time, which is a ${now.toLocaleDateString(undefined, { weekday: 'long' })}.`,
     'Resolve relative dates/times ("tonight", "tomorrow morning", "in an hour", "next Friday") against that. Always pass add_reminder a concrete date (YYYY-MM-DD) and 24h time (HH:mm) — never words.',
@@ -80,7 +80,7 @@ export function AssistantScreen({
 }: Props) {
   const [orbState, setOrbState] = useState<OrbState>('idle');
   const [messages, setMessages] = useState<Bubble[]>([
-    { id: 'welcome', role: 'assistant', text: "Hey — I'm Nudge. Tap the orb and tell me what to remember." },
+    { id: 'welcome', role: 'assistant', text: "Hey — I'm Arc Island. Tap the orb and tell me what to remember." },
   ]);
   const [hasKey, setHasKey] = useState<boolean | null>(null);
   const [capturedIdea, setCapturedIdea] = useState<string | null>(null);
@@ -194,7 +194,7 @@ export function AssistantScreen({
     try {
       const perm = await requestRecordingPermissionsAsync();
       if (!perm.granted) {
-        Alert.alert('Microphone blocked', 'Enable microphone access in Settings to talk to Nudge.');
+        Alert.alert('Microphone blocked', 'Enable microphone access in Settings to talk to Arc Island.');
         return;
       }
       await setAudioModeAsync({
@@ -266,7 +266,7 @@ export function AssistantScreen({
         <Pressable onPress={onBack} hitSlop={12}>
           <Text style={styles.backText}>‹ Home</Text>
         </Pressable>
-        <Text style={styles.title}>Nudge</Text>
+        <Text style={styles.title}>Arc Island</Text>
         <View style={{ flexDirection: 'row', gap: 16 }}>
           <Pressable onPress={onOpenIdeaVault} hitSlop={12}>
             <Text style={styles.settingsIcon}>💡</Text>
@@ -320,7 +320,7 @@ export function AssistantScreen({
             <PulseOrb state={orbState} size={78} />
           </Pressable>
           <View style={styles.orbTextCol}>
-            <Text style={styles.orbEyebrow}>NUDGE · {orbState.toUpperCase()}</Text>
+            <Text style={styles.orbEyebrow}>ARC ISLAND · {orbState.toUpperCase()}</Text>
             <Text style={styles.orbHeadline}>{orbLabel}</Text>
           </View>
         </View>

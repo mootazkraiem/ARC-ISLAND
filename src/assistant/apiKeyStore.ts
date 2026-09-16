@@ -4,7 +4,7 @@ import { PROVIDER_CONFIG } from './providerConfig';
 // One key, stored only on this device, used for both chat and voice
 // transcription — OpenRouter is a single account/key in front of every
 // model it routes to (see providerConfig.ts). Renamed from the old
-// 'openai_api_key' when Nudge moved off OpenAI directly: an old key saved
+// 'openai_api_key' when Arc Island moved off OpenAI directly: an old key saved
 // under that name wouldn't work against OpenRouter's API anyway (different
 // host, different key format), so there's nothing to migrate.
 const KEY = 'openrouter_api_key';
@@ -29,7 +29,7 @@ export async function clearApiKey(): Promise<void> {
 }
 
 /**
- * The key Nudge should actually use to call OpenRouter with: whatever's
+ * The key Arc Island should actually use to call OpenRouter with: whatever's
  * manually saved in Settings if anything (always wins — this is how you
  * "replace" the pre-configured key), otherwise the local-dev default from
  * .env (PROVIDER_CONFIG.devDefaultApiKey) if one's set, otherwise null

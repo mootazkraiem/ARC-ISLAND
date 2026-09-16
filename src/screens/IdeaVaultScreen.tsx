@@ -88,7 +88,7 @@ export function IdeaVaultScreen({ onBack }: { onBack: () => void }) {
       {ideas.length === 0 ? (
         <View style={styles.empty}>
           <Text style={styles.emptyIcon}>💡</Text>
-          <Text style={styles.emptyText}>Nothing here yet. Tell Nudge "I have an idea..." to capture one.</Text>
+          <Text style={styles.emptyText}>Nothing here yet. Tell Arc Island "I have an idea..." to capture one.</Text>
         </View>
       ) : (
         <FlatList
@@ -124,7 +124,7 @@ export function IdeaVaultScreen({ onBack }: { onBack: () => void }) {
 
               {(item.status === 'captured' || item.status === 'review') && (
                 <View style={styles.actionRow}>
-                  <Text style={styles.promoteHint}>Ask Nudge to promote this to a project →</Text>
+                  <Text style={styles.promoteHint}>Ask Arc Island to promote this to a project →</Text>
                   <View style={styles.actionBtns}>
                     <Pressable onPress={() => handleArchive(item)} style={styles.smallBtn}>
                       <Text style={styles.smallBtnText}>Archive</Text>

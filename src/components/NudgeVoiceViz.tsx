@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { colors } from '../theme';
 
-/** Waveform bars shown while Nudge is listening — purely decorative
+/** Waveform bars shown while Arc Island is listening — purely decorative
  * motion (the real transcript comes back only once recording stops), but
  * it communicates "I'm hearing you" the way the approved design intends. */
 export function ListeningWave({ bars = 20 }: { bars?: number }) {
@@ -39,7 +39,7 @@ function Bar({ index }: { index: number }) {
   );
 }
 
-/** Three-dot "thinking" indicator for Nudge's processing state. */
+/** Three-dot "thinking" indicator for Arc Island's processing state. */
 export function ThinkingDots() {
   return (
     <View style={styles.dotsRow}>

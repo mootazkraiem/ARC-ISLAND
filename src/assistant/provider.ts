@@ -1,9 +1,9 @@
 // Shared types plus the one interface every AI provider must implement.
-// Nudge (AssistantScreen.tsx) and the tool executor (tools.ts) only ever
+// Arc Island (AssistantScreen.tsx) and the tool executor (tools.ts) only ever
 // talk to this shape — never to a provider's own SDK or REST quirks
 // directly. Swapping providers later (a different hosted API, or a
 // local/offline model server) means writing one new class that implements
-// AIProvider and pointing providerConfig.ts at it; nothing in Nudge's UI
+// AIProvider and pointing providerConfig.ts at it; nothing in Arc Island's UI
 // or conversation logic has to change.
 
 export interface ChatMessage {

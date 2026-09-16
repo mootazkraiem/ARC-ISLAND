@@ -1,6 +1,6 @@
-// The one place that knows which AI provider Nudge talks to, and which
+// The one place that knows which AI provider Arc Island talks to, and which
 // models it asks that provider for. Everything else in src/assistant and
-// src/screens/AssistantScreen.tsx is provider-agnostic — to point Nudge at
+// src/screens/AssistantScreen.tsx is provider-agnostic — to point Arc Island at
 // a different OpenAI-compatible endpoint (another hosted router, or a
 // local/offline model server on your own network) later, edit this file
 // only, not the conversation or tool-calling logic.
@@ -33,7 +33,7 @@ export const PROVIDER_CONFIG = {
    * Optional attribution headers OpenRouter's docs recommend sending
    * (for their own app-ranking pages) — not required for requests to work.
    */
-  appTitle: 'Remind — Nudge',
+  appTitle: 'Arc Island',
   appReferer: 'https://github.com/remind-mvp',
 
   /**

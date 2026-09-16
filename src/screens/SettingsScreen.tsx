@@ -60,8 +60,8 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
 
         {!hasExisting && !!PROVIDER_CONFIG.devDefaultApiKey && (
           <Text style={styles.devDefaultNote}>
-            A local development key is pre-configured right now (from .env) — Nudge is already
-            working. Save a key below only if you want to override it.
+            A local development key is pre-configured right now (from .env) — Arc Island is
+            already working. Save a key below only if you want to override it.
           </Text>
         )}
 

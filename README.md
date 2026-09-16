@@ -1,4 +1,4 @@
-# Remind — a reminder app with a real progression system
+# Arc Island — a reminder app with a real progression system
 
 What started as a reminder MVP is now built around an original personal
 progression system: completing reminders earns XP, grows nine different
@@ -10,7 +10,7 @@ the setup/run guide; that one is the "how it's built and why" doc.
 
 Still true: **native local notifications**, no backend, no accounts, no
 cloud for the reminder engine itself — the only network calls in the whole
-app are Nudge's voice requests to OpenRouter, using your own key.
+app are Arc Island's voice requests to OpenRouter, using your own key.
 
 ## ⬆️ Expo SDK 51 → 57 upgrade (round 6)
 
@@ -24,7 +24,7 @@ pass only: no screens, features, or visual design changed.
   `@react-native-async-storage/async-storage`, the two font packages) were
   bumped to the exact versions SDK 57 bundles.
 - **`expo-av` is gone.** Expo fully removed it in SDK 55, splitting it into
-  `expo-video` and `expo-audio`. Nudge only ever used the recording half, so
+  `expo-video` and `expo-audio`. Arc Island only ever used the recording half, so
   `AssistantScreen.tsx` now uses `expo-audio`'s `AudioRecorder` class
   (`new AudioRecorder(...)` → `prepareToRecordAsync()` → `record()` →
   `stop()` → `.uri` → `.release()`) in place of
@@ -37,7 +37,7 @@ pass only: no screens, features, or visual design changed.
 - **`react-native-reanimated` 3 → 4.** The JS animation API this app uses
   (`useSharedValue`, `useAnimatedStyle`, `useAnimatedProps`, `withTiming`,
   `withRepeat`, `withSequence`, `withDelay`, `cancelAnimation`) is
-  unchanged — none of the progress-ring/XP-bar/Nudge-orb/level-up motion
+  unchanged — none of the progress-ring/XP-bar/Arc Island-orb/level-up motion
   code needed to change. What did change: Reanimated 4 moved its Babel
   plugin into a new `react-native-worklets` package, so `babel.config.js`
   now points at `'react-native-worklets/plugin'` instead of
@@ -74,7 +74,7 @@ pass only: no screens, features, or visual design changed.
 Reminders used to fire on the same soft, generic channel as any chat app's
 message ping. They now use a dedicated **`reminders-alarm`** Android channel
 and matching iOS content settings, built to feel like something that needs
-attention, not a passing ping — and Nudge/chat notifications were never on
+attention, not a passing ping — and Arc Island/chat notifications were never on
 this pipeline in the first place (`AssistantScreen.tsx` speaks its replies
 out loud via `expo-speech`, it never calls `scheduleNotificationAsync`), so
 there's nothing to accidentally cross-wire.
@@ -115,7 +115,7 @@ real build to actually hear.
 
 ## What's in this build, in one paragraph
 Create reminders (typed, quick-added from natural language, or spoken to
-Nudge) that fire real native notifications with Done/Snooze actions, even
+Arc Island) that fire real native notifications with Done/Snooze actions, even
 fully closed. Completing one earns XP toward a global level and toward
 whichever of nine skills the task actually touched (Focus, Fitness,
 Learning, Discipline, etc.), tracked via keyword detection — "study
@@ -124,7 +124,7 @@ Discipline, a plain errand mostly just grows Discipline. Streaks compound
 your XP. Twenty-one original cards — achievements, streak milestones, and
 per-skill mastery — sit in a Collection archive, shown as mysteries until
 you earn them. A handful are also surfaced as directed "Active Paths" with
-real progress bars. Nudge, the voice assistant, understands all of this and
+real progress bars. Arc Island, the voice assistant, understands all of this and
 reports real numbers after each completion — never invented ones.
 
 ## Where to find it in the app
@@ -186,9 +186,9 @@ an app limitation. The fastest real path to a native notification test is
 - Android notification channel with a **soft custom vibration pattern**
   (short double-pulse) instead of the default long buzz
 
-## 🎙️ Nudge — the real talking assistant (round 3)
+## 🎙️ Arc Island — the real talking assistant (round 3)
 
-Tap the mic icon next to "+ Add" on Home to open **Nudge**, a proper
+Tap the mic icon next to "+ Add" on Home to open **Arc Island**, a proper
 voice conversation, not a keyboard trick:
 
 - **Tap the orb, talk, tap again** — it records your voice
@@ -240,10 +240,10 @@ or press `r` in the terminal running Metro) after creating/editing it.
 prefixed variable from `.env` into the app's JS at bundle time — no extra
 package, no server. `src/assistant/providerConfig.ts` reads it once as
 `PROVIDER_CONFIG.devDefaultApiKey`. `src/assistant/apiKeyStore.ts`'s
-`resolveApiKey()` is what Nudge actually calls for every chat/transcription
+`resolveApiKey()` is what Arc Island actually calls for every chat/transcription
 request: it uses whatever's manually saved in Settings if anything, and only
 falls back to this `.env` value if Settings is empty. So on a fresh install
-with `.env` set up, Nudge works immediately with no Settings visit; pasting
+with `.env` set up, Arc Island works immediately with no Settings visit; pasting
 a different key into Settings still overrides it, exactly like before; and
 tapping "Remove Key" in Settings falls back to the `.env` key again rather
 than leaving you with nothing, since that's the whole point of a personal
@@ -257,6 +257,61 @@ server of ours relaying it) — fine for a private, undistributed dev build
 you run yourself, but this is not a secure secret store. Never publish or
 share a build with a real key baked in this way.
 
+### $0, no-Mac, no-Apple-fee install via GitHub Actions + SideStore — round 11
+The EAS path below (round 10) needs a paid Apple Developer Program
+membership. If you don't want to pay that, `.github/workflows/build-unsigned-ipa.yml`
+is a genuinely free alternative that needs **no Mac, no Apple account of any
+kind, and no EAS** at build time:
+
+1. **GitHub Actions compiles the app**, on GitHub's free hosted macOS
+   runner (free on a public repo; a limited free quota on a private one —
+   see the walkthrough this was delivered alongside for exact numbers).
+   It runs `expo prebuild` to generate the native iOS project, then
+   `xcodebuild` with `CODE_SIGNING_ALLOWED=NO` — a normal, supported Xcode
+   mode that compiles a real, device-targeted (arm64) `.app` **without any
+   Apple ID or signing identity at all**. That gets zipped into
+   `ArcIsland-unsigned.ipa` and uploaded as a downloadable build artifact.
+2. **SideStore, on your iPhone, does the actual signing** — the one place
+   in this whole pipeline an Apple account is used, and it's your own free
+   Apple ID, entered directly into SideStore, never through this project or
+   anyone else. SideStore then self-refreshes that signature on-device
+   roughly every 7 days, no PC involved after the one-time SideStore setup.
+
+Nothing about the app itself changed for this — same UI, same reminder
+engine, same OpenRouter provider, same `.env` dev key, same everything.
+This is purely a different way to get the already-existing app onto a
+physical iPhone without Expo Go or Apple's yearly fee.
+
+### Real standalone install via EAS (no Expo Go) — round 10
+`eas.json` now defines three build profiles for `eas build --platform ios`:
+- **`preview`** — a real, standalone signed app (no dev client, no Metro
+  needed after install), distributed "internal" (ad-hoc — installs straight
+  onto your registered iPhone via a link, no App Store review). This is the
+  one that matches "install once, PC can be off, use it like a normal app."
+- **`development`** — a dev-client build (still connects to Metro for live
+  JS reload) for if you ever want to iterate against a real build instead of
+  Expo Go.
+- **`production`** — for eventually submitting to TestFlight/the App Store.
+
+This only changes build configuration — no app code, UI, or provider logic
+changed. Building and signing for a physical iPhone requires **your own**
+Apple Developer Program membership and Apple ID login, entered directly by
+you in your own terminal during `eas build` (never through this assistant) —
+see the walkthrough this was delivered alongside for the exact commands.
+
+### Fixed: "Unsupported FormDataPart implementation" on voice (round 9)
+Talking to Arc Island on SDK 57 could fail with this error after recording. Root
+cause: SDK 57 made a new, spec-compliant `fetch` (`expo/fetch`) the app's
+*global* fetch, replacing React Native's old one — and its `FormData` only
+accepts string/Blob parts, not the old React-Native-only upload shape
+(`{ uri, name, type }`) that `transcribeAudio()` in
+`src/assistant/providers/openrouter.ts` was using to attach the recording.
+Fixed by wrapping the recording in `expo-file-system`'s `File` class (`new
+File(uri)`), which implements the real `Blob` interface and can be appended
+to `FormData` directly — same OpenRouter request, same transcription model,
+nothing else about the request changed. Added `expo-file-system` as an
+explicit dependency for this. No UI, tool-calling, or provider changes.
+
 ### Cost, roughly
 Chat replies: **$0**, via OpenRouter's free model router (`openrouter/free`)
 — capped at 50 requests/day, or 1000/day if you ever add $10 of OpenRouter
@@ -266,7 +321,7 @@ A typical "add a reminder" round-trip still costs well under a cent.
 
 ### What it can't do (yet)
 - No wake word / always-listening — you must have the app open and tap the
-  orb. True background "Hey Nudge" listening needs a native dev build.
+  orb. True background "Hey Arc Island" listening needs a native dev build.
 - No offline mode — no internet, no assistant (the rest of the app, adding
   reminders manually, still works fully offline).
 - History resets when you close the app (not persisted) — only your
@@ -297,7 +352,7 @@ the same engines as before, just rendered through a new design system.
 - **New dependencies** (added to `package.json`, pulled in by
   `npm install` — nothing new to configure by hand): `react-native-reanimated`
   (the motion system), `react-native-svg` (the level ring — RN has no CSS
-  conic-gradient), `expo-linear-gradient` (the Nudge orb / card marks),
+  conic-gradient), `expo-linear-gradient` (the Arc Island orb / card marks),
   `expo-font` + `@expo-google-fonts/sora` + `@expo-google-fonts/manrope`
   (the two typefaces). A `babel.config.js` was added since Reanimated
   needs its babel plugin.
@@ -312,7 +367,7 @@ the same engines as before, just rendered through a new design system.
   `TodaysPath` (now leads with the level ring + XP bar, matching the
   artifact's Home screen), `ProgressScreen` (big level ring, skill bars
   with glow, streak chain), `CardTile` (rarity glow, gradient mark),
-  `CardDetailSheet`, `UnlockToast`, `AssistantScreen`'s Nudge sheet (state
+  `CardDetailSheet`, `UnlockToast`, `AssistantScreen`'s Arc Island sheet (state
   eyebrow/headline, waveform/dots per state).
 - **What did not change**: `notifications.ts`, `storage.ts`,
   `reminderLogic.ts`, the entire `progression/` engine, `thoughts/vault.ts`,
@@ -331,33 +386,33 @@ the same engines as before, just rendered through a new design system.
 
 ## 💡 Idea Vault — thought/idea/task intelligence (round 4)
 
-Nudge no longer treats everything you say as a reminder to schedule. It now
+Arc Island no longer treats everything you say as a reminder to schedule. It now
 tells apart four different things you might mean:
 
 - **"Remind me to call the landlord tomorrow at 9"** → a **REMINDER**, created
   immediately, same as always.
 - **"I need to finish my cybersecurity report"** → a **TASK/GOAL** with no
-  explicit time — Nudge asks whether you want it scheduled rather than
+  explicit time — Arc Island asks whether you want it scheduled rather than
   guessing a time for you.
 - **"What if we built a global anonymous progression world"** → an **IDEA**.
-  Nudge does **not** create a project. It captures the idea into the new
+  Arc Island does **not** create a project. It captures the idea into the new
   **Idea Vault** and says so out loud — nothing else happens.
 - **"Let's actually build the global progression world"** → committed
-  language, so Nudge recognizes possible **PROJECT** intent, explains its
+  language, so Arc Island recognizes possible **PROJECT** intent, explains its
   reasoning, and confirms with you before creating anything.
 
 ### The Idea Vault
-Tap the 💡 icon (next to the mic on Home, or next to ⚙︎ inside Nudge) to open
+Tap the 💡 icon (next to the mic on Home, or next to ⚙︎ inside Arc Island) to open
 it. Every captured idea/thought/note/experiment/goal lives here with its
 original wording, a kind label, tags, and a status: **Captured → Review →
 Promoted / Archived / Dismissed**. Filter chips switch between Active,
 Promoted, Archived, Dismissed, and All. You can Archive or Dismiss an idea
 right from the card (Dismiss asks for confirmation first) — but promoting an
 idea into a project is deliberately **not** a button in this screen; you ask
-Nudge to do it, because that's a judgment call, not a form submission.
+Arc Island to do it, because that's a judgment call, not a form submission.
 
 ### Promoting an idea → a project
-Say *"turn that idea into a project"* and Nudge will generate exactly **one**
+Say *"turn that idea into a project"* and Arc Island will generate exactly **one**
 small first milestone and **one** first actionable task — never a fake
 30-item task list. That first task is created as a completely ordinary
 Reminder, so it fires a real notification and, when you complete it, flows
@@ -368,17 +423,17 @@ through the exact same unmodified XP/streak/card pipeline as everything else.
   cards — the Vault has zero connection to the progression engine on
   purpose. Capturing more ideas is not something the app rewards or nudges
   you to do more of.
-- Nudge never silently turns an idea into a project, and never silently
+- Arc Island never silently turns an idea into a project, and never silently
   creates a project's tasks in bulk — promotion always requires you to ask
   for it, and it always produces exactly one milestone + one task.
 - "Forget that idea" always asks you to confirm the exact idea by name
   before marking it dismissed (which is reversible — it's a status change,
   not a delete, so it's never permanently gone).
-- Ask *"show me my ideas"* any time for a quick spoken list — Nudge reports
+- Ask *"show me my ideas"* any time for a quick spoken list — Arc Island reports
   a few titles and a total count, never inventing contents.
 
 See **ARCHITECTURE.md** for the full design writeup: why classification
-lives entirely in Nudge's prompt rather than a separate rule-based module,
+lives entirely in Arc Island's prompt rather than a separate rule-based module,
 why the Vault mirrors the Progression store's shape, and how to extend this
 layer (new idea kinds, multi-task projects, etc.) later.
 
@@ -428,7 +483,7 @@ layer (new idea kinds, multi-task projects, etc.) later.
   sense — for guaranteed reboot survival, build a standalone app with
   `eas build` later.
 - No calendar/list view beyond "sorted upcoming" — out of scope for MVP.
-- Nudge requires internet + a free OpenRouter key (see above) — chat replies
+- Arc Island requires internet + a free OpenRouter key (see above) — chat replies
   cost nothing by default; only voice transcription is billed.
 - The progression system's edge cases (what exactly "The Finisher" counts,
   why the day recap isn't a literal midnight job, why unlock timestamps
@@ -457,10 +512,10 @@ src/reminderLogic.ts            — next-occurrence math, formatting, sorting
 src/nlParse.ts                  — free/offline quick-add natural-language parser
 src/screens/HomeScreen.tsx       — list + empty state + quick add + filters + add button
 src/screens/EditorScreen.tsx     — create/edit form
-src/screens/AssistantScreen.tsx  — Nudge: record → transcribe → chat+tools → speak
+src/screens/AssistantScreen.tsx  — Arc Island: record → transcribe → chat+tools → speak
 src/screens/SettingsScreen.tsx   — OpenRouter API key entry (SecureStore)
 src/assistant/provider.ts        — AIProvider interface + shared chat/tool types (provider-agnostic)
-src/assistant/providerConfig.ts  — which provider/models Nudge uses, + optional .env dev-key default
+src/assistant/providerConfig.ts  — which provider/models Arc Island uses, + optional .env dev-key default
 src/assistant/providers/openrouter.ts — OpenRouter implementation of AIProvider (transcribe + chat+tools)
 src/assistant/aiClient.ts        — stable entry point AssistantScreen calls through
 src/assistant/tools.ts           — add/list/complete/delete tool schemas + executor
@@ -490,7 +545,7 @@ src/components/CardTile.tsx, CardDetailSheet.tsx, UnlockToast.tsx, DayRecapModal
    double-pulse instead of the harsh default buzz.
 4. **Organize-your-life round**: natural-language Quick Add, categories with
    color coding, filter chips, swipe-to-complete/swipe-to-delete gestures.
-5. **Nudge, the talking assistant**: voice recording, OpenRouter transcription,
+5. **Arc Island, the talking assistant**: voice recording, OpenRouter transcription,
    OpenRouter's free model router with real tool-calling against your
    reminders, spoken replies, a settings screen for your API key, a custom
    animated mic orb.
@@ -509,7 +564,7 @@ src/components/CardTile.tsx, CardDetailSheet.tsx, UnlockToast.tsx, DayRecapModal
    mysteries, a Collection screen, a Progress screen with an
    "Active Paths" challenge view built from the *same* card data (not a
    parallel system), a Today's Path daily checklist on Home, an unlock
-   toast, a once-per-day yesterday recap, and Nudge upgraded to read and
+   toast, a once-per-day yesterday recap, and Arc Island upgraded to read and
    report real XP/skill/streak numbers after every completion via a new
    `get_progress` tool — never invented ones. The reminder engine itself
    (`notifications.ts`, `storage.ts`) was not modified at all in this pass;
@@ -517,10 +572,10 @@ src/components/CardTile.tsx, CardDetailSheet.tsx, UnlockToast.tsx, DayRecapModal
    function in `App.tsx`.
 8. **Thought/idea/task intelligence** (this session): a new `src/thoughts/`
    layer (an `Idea`/`Project` domain model plus a `Vault` store mirroring
-   `Progression`'s init/subscribe shape) and four new Nudge tools
-   (`save_idea`, `list_ideas`, `promote_idea`, `update_idea_status`) so Nudge
+   `Progression`'s init/subscribe shape) and four new Arc Island tools
+   (`save_idea`, `list_ideas`, `promote_idea`, `update_idea_status`) so Arc Island
    can tell reminders, tasks, ideas, and committed projects apart instead of
-   scheduling everything it hears. Classification lives entirely in Nudge's
+   scheduling everything it hears. Classification lives entirely in Arc Island's
    system prompt and available tools — no separate rule-based classifier —
    to avoid a second copy of that logic. Promotion is schema-limited to
    exactly one milestone + one first task (a real Reminder, so it still
@@ -528,13 +583,18 @@ src/components/CardTile.tsx, CardDetailSheet.tsx, UnlockToast.tsx, DayRecapModal
    Dismissing an idea by voice uses a two-step confirm-by-name protocol
    mirroring the existing UI delete-confirmation pattern, and nothing in
    this layer ever earns XP or unlocks a card — on purpose. New: the Idea
-   Vault screen (💡 icon on Home and inside Nudge).
+   Vault screen (💡 icon on Home and inside Arc Island).
 9. **Alarm-style reminder notifications** (round 7): a dedicated max-importance
    Android channel, a four-pulse alarm vibration pattern, a bundled custom
    alert tone via the `expo-notifications` config plugin, and
    `interruptionLevel: 'timeSensitive'` on iOS — see the dedicated section
    above. Existing Done/Snooze actions and the reminder engine itself were
    left untouched; only the channel/sound/vibration config changed.
+10. **Voice bug fix** (round 9): fixed "Unsupported FormDataPart
+    implementation" when talking to Arc Island on SDK 57, caused by the new
+    global `expo/fetch`'s stricter `FormData` — see the dedicated section
+    above. One file changed (`openrouter.ts`'s `transcribeAudio()`); no UI
+    or architecture changes.
 
 Every static-analysis pass I could run without real npm access (manual
 TypeScript syntax/type checks with the project's own `typescript` package

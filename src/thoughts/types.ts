@@ -12,7 +12,7 @@
 // directly.
 // ─────────────────────────────────────────────────────────────────────────
 
-/** What Nudge decided a piece of input "is." Reminder and Task both flow
+/** What Arc Island decided a piece of input "is." Reminder and Task both flow
  * straight into the existing reminder engine (see assistant/tools.ts's
  * add_reminder) and never touch this module at all — they're listed here
  * only so the taxonomy is documented in one place. */

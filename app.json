@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Remind",
+    "name": "Arc Island",
     "slug": "remind-mvp",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -16,7 +16,7 @@
       "bundleIdentifier": "com.remind.mvp",
       "infoPlist": {
         "UIBackgroundModes": ["remote-notification"],
-        "NSMicrophoneUsageDescription": "Nudge listens when you tap the mic so it can turn your voice into a reminder."
+        "NSMicrophoneUsageDescription": "Arc Island listens when you tap the mic so it can turn your voice into a reminder."
       }
     },
     "android": {
@@ -45,7 +45,7 @@
       [
         "expo-audio",
         {
-          "microphonePermission": "Nudge listens when you tap the mic so it can turn your voice into a reminder.",
+          "microphonePermission": "Arc Island listens when you tap the mic so it can turn your voice into a reminder.",
           "enableBackgroundRecording": false
         }
       ]

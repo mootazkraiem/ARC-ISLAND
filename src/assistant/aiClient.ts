@@ -1,9 +1,9 @@
-// Stable entry point Nudge's UI (AssistantScreen.tsx) calls through. It
+// Stable entry point Arc Island's UI (AssistantScreen.tsx) calls through. It
 // deliberately knows nothing about OpenRouter specifically — today
 // `provider` is an OpenRouterProvider, but AssistantScreen and tools.ts
 // only ever see chatCompletion()/transcribeAudio(), so swapping in a
 // different AIProvider (another hosted API, or a local/offline model
-// later) is a one-line change in this file, not a rewrite of Nudge.
+// later) is a one-line change in this file, not a rewrite of Arc Island.
 import { OpenRouterProvider } from './providers/openrouter';
 import { AIProvider, AIProviderError, ChatMessage, ToolCall } from './provider';
 

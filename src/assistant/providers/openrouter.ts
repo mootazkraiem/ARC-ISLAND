@@ -3,6 +3,7 @@
 // front of many models (including free ones), so this file is the only
 // place that knows about openrouter.ai's URLs/headers — everything else
 // talks to the generic AIProvider interface in ../provider.ts.
+import { File } from 'expo-file-system';
 import { AIProvider, AIProviderError, ChatMessage, ToolCall } from '../provider';
 import { PROVIDER_CONFIG } from '../providerConfig';
 
@@ -55,8 +56,15 @@ export class OpenRouterProvider implements AIProvider {
 
   async transcribeAudio(uri: string, apiKey: string): Promise<string> {
     const form = new FormData();
-    // @ts-expect-error React Native's FormData accepts this file-object shape.
-    form.append('file', { uri, name: 'speech.m4a', type: 'audio/m4a' });
+    // SDK 57 made `expo/fetch` (a spec-compliant WinterCG fetch) the GLOBAL
+    // fetch, replacing React Native's old fetch polyfill. Its FormData only
+    // accepts string/Blob parts, so the old React-Native-only file shape —
+    // form.append('file', { uri, name, type }) — now throws "Unsupported
+    // FormDataPart implementation". expo-file-system's File class wraps an
+    // existing file and implements the real Blob interface, so it can be
+    // appended directly, with the filename passed as append()'s 3rd arg.
+    const file = new File(uri);
+    form.append('file', file, file.name || 'speech.m4a');
     form.append('model', PROVIDER_CONFIG.transcribeModel);
 
     const res = await fetch(`${PROVIDER_CONFIG.apiBase}/audio/transcriptions`, {

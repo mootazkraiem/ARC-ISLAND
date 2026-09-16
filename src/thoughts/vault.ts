@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────
 // The Idea Vault store — same shape as progression/engine.ts (init/
 // getSnapshot/subscribe), because that pattern already works well for "a
-// small persisted store that both a screen and Nudge's tools need to read
+// small persisted store that both a screen and Arc Island's tools need to read
 // and mutate." This one is intentionally much simpler: no XP math, no
 // unlock evaluation — just capture, list, status changes, and promotion.
 // ─────────────────────────────────────────────────────────────────────────

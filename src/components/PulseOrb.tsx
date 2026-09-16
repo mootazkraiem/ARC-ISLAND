@@ -15,7 +15,7 @@ import { colors, motion } from '../theme';
 
 export type OrbState = 'idle' | 'listening' | 'thinking' | 'speaking';
 
-// One orb, four behaviours — matches the approved design's Nudge states.
+// One orb, four behaviours — matches the approved design's Arc Island states.
 // Real states only: this always reflects AssistantScreen's actual
 // recording/transcribing/speaking flow, never a fake animation standing
 // in for state that hasn't happened yet.
@@ -33,7 +33,7 @@ export function PulseOrb({ state, size = 96 }: { state: OrbState; size?: number 
 
   useEffect(() => {
     // Idle breathing loop — always running, per the motion spec
-    // ("Nudge orb idle: loop breathe 3.2s, ±8% scale").
+    // ("Arc Island orb idle: loop breathe 3.2s, ±8% scale").
     breathe.value = withRepeat(
       withSequence(
         withTiming(1, { duration: motion.breathe.duration / 2, easing: Easing.inOut(Easing.ease) }),
