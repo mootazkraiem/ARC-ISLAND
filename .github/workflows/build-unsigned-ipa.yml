@@ -55,7 +55,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            CODE_SIGN_ENTITLEMENTS=""
+            CODE_SIGN_ENTITLEMENTS="" \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO
 
       - name: Package the .app into an unsigned .ipa
         working-directory: ios
