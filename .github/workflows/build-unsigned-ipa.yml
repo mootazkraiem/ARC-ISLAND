@@ -1,25 +1,5 @@
 name: Build unsigned iOS .ipa (for SideStore)
 
-# Produces a compiled-but-UNSIGNED Arc Island .ipa for a real iPhone (arm64,
-# not the Simulator), with zero Apple account involved at build time —
-# CODE_SIGNING_ALLOWED=NO tells Xcode to skip code signing entirely, which
-# is a normal, supported xcodebuild mode for exactly this "sign it with
-# something else later" case. SideStore (on your iPhone, with your own free
-# Apple ID) does the actual Apple-required signing afterward, at install
-# time — that's the only place any Apple account is used in this whole
-# pipeline. This workflow does not touch EAS, does not need an Expo
-# account, and does not need any Apple Developer Program membership, free
-# or paid.
-#
-# Runs on GitHub's hosted macOS runner (that's the one piece of this that
-# genuinely requires a Mac — GitHub provides it, not you). Free on public
-# repos; a limited free quota on private repos (macOS minutes count 10x
-# against the monthly free minutes on a private repo — see the README
-# section this workflow was delivered alongside for the exact numbers).
-#
-# Trigger manually from the Actions tab ("Run workflow"), or it runs
-# automatically on every push to main.
-
 on:
   workflow_dispatch: {}
   push:
@@ -27,10 +7,15 @@ on:
 
 jobs:
   build-unsigned-ipa:
-    runs-on: macos-14
+    runs-on: macos-15
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
+
+      - name: Select a recent Xcode (React Native 0.86 needs >= 16.1)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
 
       - name: Set up Node
         uses: actions/setup-node@v4
