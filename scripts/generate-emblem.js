@@ -270,12 +270,16 @@ function render(size, mode) {
       const dx = px / size - 0.5;
       const dy = py / size - 0.5;
       const dist = Math.hypot(dx, dy);
-      bloom = Math.max(0, 1 - dist / 0.52) ** 2.4;
+      // Two-stage bloom: a broad soft halo plus a tighter core, so the
+      // icon reads as lit rather than as a mark floating on pure black.
+      const halo = Math.max(0, 1 - dist / 0.62) ** 1.7;
+      const core = Math.max(0, 1 - dist / 0.30) ** 2.0;
+      bloom = Math.min(1, halo * 0.75 + core * 0.55);
 
       // background: deep void, lifted by the bloom toward violet
-      let r = lerp(0x04, 0x2a, bloom * 0.85);
-      let g = lerp(0x04, 0x1d, bloom * 0.85);
-      let b = lerp(0x07, 0x4d, bloom * 0.85);
+      let r = lerp(0x05, 0x3a, bloom);
+      let g = lerp(0x05, 0x26, bloom);
+      let b = lerp(0x0c, 0x6b, bloom);
 
       // brackets in a dim cyan
       if (bracket > 0) {

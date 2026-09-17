@@ -34,7 +34,7 @@
     },
     "web": {
       "bundler": "metro",
-      "favicon": "./assets/icon.png",
+      "favicon": "./assets/favicon.png",
       "backgroundColor": "#040407"
     },
     "plugins": [
