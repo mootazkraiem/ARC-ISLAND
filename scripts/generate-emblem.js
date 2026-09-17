@@ -308,6 +308,8 @@ function render(size, mode) {
 const targets = [
   ['icon.png', 1024, 'icon'],
   ['adaptive-icon.png', 1024, 'adaptive'],
+  // Android status-bar icon: the platform masks this to a flat silhouette
+  // and tints it, so it MUST be white-on-transparent.
   ['notification-icon.png', 96, 'mono'],
   ['favicon.png', 64, 'icon'],
 ];
@@ -316,4 +318,20 @@ for (const [name, size, mode] of targets) {
   const buf = render(size, mode);
   fs.writeFileSync(path.join(OUT, name), buf);
   console.log(`wrote assets/${name}  ${size}x${size}  ${mode}  ${(buf.length / 1024).toFixed(1)}KB`);
+}
+
+// ── web static files ─────────────────────────────────────────────────────
+// Expo serves `public/` at the web root. The browser-notification icon must
+// be the FULL-COLOUR emblem, not the Android mono silhouette: web
+// notifications render the icon as-is on the OS's own (often light)
+// notification surface, where a white-on-transparent mark is invisible.
+const PUBLIC = path.join(__dirname, '..', 'public');
+fs.mkdirSync(PUBLIC, { recursive: true });
+for (const [name, size, mode] of [
+  ['notification-icon.png', 192, 'icon'],
+  ['favicon.png', 64, 'icon'],
+]) {
+  const buf = render(size, mode);
+  fs.writeFileSync(path.join(PUBLIC, name), buf);
+  console.log(`wrote public/${name}  ${size}x${size}  ${mode}  ${(buf.length / 1024).toFixed(1)}KB`);
 }
