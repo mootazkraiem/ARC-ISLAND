@@ -1,50 +1,69 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { theme } from '../theme';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors, font, radii, spacing } from '../theme';
+import { SystemGlyph } from './SystemGlyph';
 
-export function EmptyState() {
+/** The unclaimed state. An empty quest diamond — a slot in the world with
+ * nothing in it yet — rather than a shrug emoji. */
+export function EmptyState({ onClaim }: { onClaim?: () => void }) {
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
-        <Text style={styles.icon}>⏰</Text>
+        <SystemGlyph name="quest" size={30} color={colors.signal} strokeWidth={1.2} opacity={0.75} />
       </View>
-      <Text style={styles.title}>Nothing scheduled</Text>
+      <Text style={styles.title}>No quests registered</Text>
       <Text style={styles.subtitle}>
-        Tap “+ Add Reminder” to get your first{'\n'}notification on the books.
+        The System is listening. Claim your first quest{'\n'}and it will summon you at its hour.
       </Text>
+      {onClaim && (
+        <Pressable onPress={onClaim} style={({ pressed }) => [styles.btn, pressed && styles.btnPressed]}>
+          <SystemGlyph name="claim" size={14} color={colors.signal} />
+          <Text style={styles.btnText}>CLAIM A QUEST</Text>
+        </Pressable>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing(10),
-    paddingBottom: theme.spacing(20),
+    paddingHorizontal: spacing(8),
+    paddingVertical: spacing(10),
+    gap: spacing(2),
   },
   iconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.card,
+    width: 68,
+    height: 68,
+    borderRadius: radii.lg,
+    backgroundColor: colors.holo,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    borderColor: colors.holoBorder,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: theme.spacing(5),
+    marginBottom: spacing(2),
   },
-  icon: { fontSize: 30 },
-  title: {
-    ...theme.font.heading,
-    color: theme.colors.text,
-    marginBottom: theme.spacing(2),
-  },
+  title: { ...font.heading, fontSize: 17, color: colors.text },
   subtitle: {
-    ...theme.font.body,
-    color: theme.colors.textDim,
+    ...font.body,
+    color: colors.textFaint,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
+    fontSize: 13,
   },
+  btn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(1.5),
+    marginTop: spacing(3),
+    paddingHorizontal: spacing(4),
+    paddingVertical: spacing(2.5),
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    borderColor: 'rgba(124,92,255,0.4)',
+    backgroundColor: colors.signalSoft,
+  },
+  btnPressed: { opacity: 0.75 },
+  btnText: { ...font.label, fontSize: 10, color: colors.signal, letterSpacing: 1.6 },
 });
