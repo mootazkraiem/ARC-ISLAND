@@ -1,12 +1,13 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { RepeatMode } from '../types';
-import { theme } from '../theme';
+import { colors, font, radii, spacing } from '../theme';
+import { SystemGlyph, GlyphName } from './SystemGlyph';
 
-const OPTIONS: { key: RepeatMode; label: string }[] = [
-  { key: 'once', label: 'Once' },
-  { key: 'daily', label: 'Daily' },
-  { key: 'weekly', label: 'Weekly' },
+const OPTIONS: { key: RepeatMode; label: string; glyph: GlyphName }[] = [
+  { key: 'once', label: 'ONCE', glyph: 'quest' },
+  { key: 'daily', label: 'DAILY', glyph: 'repeat' },
+  { key: 'weekly', label: 'WEEKLY', glyph: 'calendar' },
 ];
 
 export function RepeatSelector({
@@ -26,6 +27,12 @@ export function RepeatSelector({
             onPress={() => onChange(opt.key)}
             style={[styles.pill, active && styles.pillActive]}
           >
+            <SystemGlyph
+              name={opt.glyph}
+              size={14}
+              color={active ? colors.signal : colors.textFainter}
+              strokeWidth={1.6}
+            />
             <Text style={[styles.pillText, active && styles.pillTextActive]}>{opt.label}</Text>
           </Pressable>
         );
@@ -35,17 +42,20 @@ export function RepeatSelector({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', gap: theme.spacing(2) },
+  row: { flexDirection: 'row', gap: spacing(2) },
   pill: {
     flex: 1,
-    paddingVertical: theme.spacing(3),
-    borderRadius: theme.radius.md,
-    backgroundColor: theme.colors.card,
-    borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing(1.5),
+    paddingVertical: spacing(2.75),
+    borderRadius: radii.md,
+    backgroundColor: 'rgba(4,4,7,0.4)',
+    borderWidth: 1,
+    borderColor: colors.holoBorder,
   },
-  pillActive: { backgroundColor: theme.colors.accent, borderColor: theme.colors.accent },
-  pillText: { ...theme.font.body, color: theme.colors.textDim, fontWeight: '600' },
-  pillTextActive: { color: '#FFFFFF' },
+  pillActive: { backgroundColor: colors.signalSoft, borderColor: 'rgba(124,92,255,0.5)' },
+  pillText: { ...font.label, fontSize: 9, color: colors.textFaint, letterSpacing: 1.2 },
+  pillTextActive: { color: colors.signal },
 });

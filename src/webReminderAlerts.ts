@@ -83,7 +83,18 @@ function fireNotification(reminder: Reminder) {
   const win = getWindow();
   if (!win?.Notification || win.Notification.permission !== 'granted') return;
   try {
-    new win.Notification('Reminder', { body: reminder.title, tag: reminder.id });
+    // The web summons. Title carries the world, body carries the quest —
+    // a browser notification only gets two lines, so the world name has to
+    // do its work in the first one. `icon` points at the Arc Island system
+    // seal served from the web build's static assets; if it 404s the
+    // browser silently falls back to its own default, so this can't break
+    // the alert itself.
+    new win.Notification('ARC ISLAND — THE SYSTEM SUMMONS YOU', {
+      body: reminder.title,
+      tag: reminder.id,
+      icon: '/notification-icon.png',
+      badge: '/notification-icon.png',
+    });
   } catch {
     // ignore
   }

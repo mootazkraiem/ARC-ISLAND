@@ -67,7 +67,7 @@ export async function initNotifications() {
     // accent (see theme.ts) so it visually reads as urgent too.
     // Pattern is [wait, vibrate, wait, vibrate...] in ms.
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: 'Reminders (alarm)',
+      name: 'Quest summons (alarm)',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 400, 200, 400, 200, 400, 200, 400],
       enableVibrate: true,
@@ -171,7 +171,9 @@ export async function syncNotificationForReminder(
   const trigger = buildTrigger(reminder);
   const id = await Notifications.scheduleNotificationAsync({
     content: {
-      title: 'Reminder',
+      // The System summons the player. Copy only — every trigger, channel,
+      // sound and interruption setting below is unchanged.
+      title: 'THE SYSTEM SUMMONS YOU',
       body: reminder.title,
       // Android 8+ ignores this and uses the channel's sound instead (see
       // setNotificationChannelAsync above) — set here too since iOS has no
@@ -195,7 +197,7 @@ export async function scheduleSnooze(reminder: Reminder, minutes = 10) {
   const fireDate = new Date(Date.now() + minutes * 60 * 1000);
   await Notifications.scheduleNotificationAsync({
     content: {
-      title: 'Reminder (snoozed)',
+      title: 'THE SYSTEM SUMMONS YOU AGAIN',
       body: reminder.title,
       sound: REMINDER_SOUND,
       interruptionLevel: 'timeSensitive',

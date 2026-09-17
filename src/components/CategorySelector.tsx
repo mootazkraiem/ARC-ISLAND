@@ -1,10 +1,13 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Category } from '../types';
-import { theme } from '../theme';
+import { category as categoryTokens, colors, font, radii, spacing } from '../theme';
 
 const ORDER: Category[] = ['personal', 'work', 'health', 'errand', 'other'];
 
+/** The five paths a quest can belong to. The dot is the same hue the quest
+ * block, card spine and calendar column use for that path, so the colour
+ * means one thing everywhere in the world. */
 export function CategorySelector({
   value,
   onChange,
@@ -16,15 +19,31 @@ export function CategorySelector({
     <View style={styles.row}>
       {ORDER.map((cat) => {
         const active = value === cat;
-        const meta = theme.category[cat];
+        const meta = categoryTokens[cat];
         return (
           <Pressable
             key={cat}
             onPress={() => onChange(cat)}
-            style={[styles.chip, active && { borderColor: meta.dot, backgroundColor: meta.dot + '26' }]}
+            style={[
+              styles.chip,
+              active && { borderColor: meta.dot, backgroundColor: meta.dot + '1F' },
+            ]}
           >
-            <View style={[styles.dot, { backgroundColor: meta.dot }]} />
-            <Text style={[styles.label, active && { color: theme.colors.text }]}>{meta.label}</Text>
+            <View
+              style={[
+                styles.dot,
+                { backgroundColor: meta.dot },
+                active && {
+                  shadowColor: meta.dot,
+                  shadowOpacity: 0.9,
+                  shadowRadius: 7,
+                  shadowOffset: { width: 0, height: 0 },
+                },
+              ]}
+            />
+            <Text style={[styles.label, active && { color: colors.text }]}>
+              {meta.label.toUpperCase()}
+            </Text>
           </Pressable>
         );
       })}
@@ -33,17 +52,17 @@ export function CategorySelector({
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing(2) },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing(2) },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.pill,
-    paddingHorizontal: theme.spacing(3),
-    paddingVertical: theme.spacing(2),
+    borderColor: colors.holoBorder,
+    backgroundColor: 'rgba(4,4,7,0.4)',
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing(3),
+    paddingVertical: spacing(2),
   },
-  dot: { width: 8, height: 8, borderRadius: 4, marginRight: 6 },
-  label: { ...theme.font.caption, color: theme.colors.textDim, fontWeight: '600' },
+  dot: { width: 7, height: 7, borderRadius: 4, marginRight: 7 },
+  label: { ...font.label, fontSize: 8.5, color: colors.textFaint, letterSpacing: 1.2 },
 });

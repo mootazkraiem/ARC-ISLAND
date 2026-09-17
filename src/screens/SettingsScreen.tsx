@@ -50,7 +50,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
           <Text style={styles.backText}>‹ Back</Text>
         </Pressable>
 
-        <Text style={styles.heading}>Assistant Settings</Text>
+        <Text style={styles.heading}>System Settings</Text>
         <Text style={styles.subtitle}>
           The assistant uses OpenRouter to hear you and reply, defaulting to OpenRouter's free
           model router — no OpenAI account needed. Your key is stored only on this device and
@@ -98,7 +98,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
             (1000/day if you ever add $10 of OpenRouter credit).
             {Platform.OS === 'web'
               ? " Voice on the web uses your browser's own built-in speech recognition, not this key — it's always $0 and never sends audio anywhere."
-              : " Voice transcription isn't free on OpenRouter yet — it's billed a small per-minute Whisper rate on this same key. A typical \"add a reminder\" exchange still costs well under a cent."}
+              : " Voice transcription isn't free on OpenRouter yet — it's billed a small per-minute Whisper rate on this same key. A typical \"claim a quest\" exchange still costs well under a cent."}
           </Text>
         </View>
       </ScrollView>
