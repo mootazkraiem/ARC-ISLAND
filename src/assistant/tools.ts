@@ -5,6 +5,7 @@ import { levelFromTotalXp } from '../progression/levels';
 import { CompletionResult, SKILL_META } from '../progression/types';
 import { Vault } from '../thoughts/vault';
 import { Complexity, IdeaStatus, Potential, ThoughtKind } from '../thoughts/types';
+import { DEFAULT_QUEST_MINUTES, clampDuration } from '../calendar/occurrences';
 
 export const CATEGORY_VALUES: Category[] = ['personal', 'work', 'health', 'errand', 'other'];
 export const REPEAT_VALUES: RepeatMode[] = ['once', 'daily', 'weekly'];
@@ -16,20 +17,25 @@ export const toolDefinitions = [
   {
     type: 'function',
     function: {
-      name: 'add_reminder',
+      name: 'register_quest',
       description:
-        'Create a new reminder that will fire a native phone notification at the given date/time.',
+        'Register a new quest with the System at a specific date and time. The quest is committed immediately and will summon the user when its hour arrives.',
       parameters: {
         type: 'object',
         properties: {
-          title: { type: 'string', description: 'Short reminder text, e.g. "Walk the dog".' },
-          date: { type: 'string', description: 'ISO date the reminder is anchored to, YYYY-MM-DD.' },
+          title: { type: 'string', description: 'Short quest name, e.g. "Walk the dog".' },
+          date: { type: 'string', description: 'ISO date the quest is anchored to, YYYY-MM-DD.' },
           time: { type: 'string', description: '24-hour time, HH:mm, e.g. "22:00".' },
           repeat: { type: 'string', enum: REPEAT_VALUES, description: 'How often it repeats.' },
+          durationMin: {
+            type: 'number',
+            description:
+              'How long the quest occupies on the Quest Calendar, in minutes. Optional; defaults to 45. Use a realistic length — deep work 90-120, a meeting 30-60, an errand 20-30.',
+          },
           category: {
             type: 'string',
             enum: CATEGORY_VALUES,
-            description: 'Best-guess category for this reminder.',
+            description: 'Best-guess category for this quest.',
           },
         },
         required: ['title', 'date', 'time', 'repeat', 'category'],
@@ -39,8 +45,8 @@ export const toolDefinitions = [
   {
     type: 'function',
     function: {
-      name: 'list_reminders',
-      description: "List the user's current reminders, optionally filtered.",
+      name: 'list_quests',
+      description: "List the user's currently registered quests, optionally filtered.",
       parameters: {
         type: 'object',
         properties: {
@@ -62,12 +68,12 @@ export const toolDefinitions = [
   {
     type: 'function',
     function: {
-      name: 'complete_reminder',
-      description: 'Mark a reminder as done by matching its title (fuzzy/substring match).',
+      name: 'complete_quest',
+      description: 'Mark a quest complete by matching its title (fuzzy/substring match). Awards XP, skills and streak progress.',
       parameters: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Words from the reminder title to match against.' },
+          query: { type: 'string', description: 'Words from the quest title to match against.' },
         },
         required: ['query'],
       },
@@ -76,12 +82,12 @@ export const toolDefinitions = [
   {
     type: 'function',
     function: {
-      name: 'delete_reminder',
-      description: 'Permanently delete a reminder by matching its title (fuzzy/substring match).',
+      name: 'delete_quest',
+      description: 'Permanently remove a quest from the world by matching its title (fuzzy/substring match).',
       parameters: {
         type: 'object',
         properties: {
-          query: { type: 'string', description: 'Words from the reminder title to match against.' },
+          query: { type: 'string', description: 'Words from the quest title to match against.' },
         },
         required: ['query'],
       },
@@ -145,7 +151,7 @@ export const toolDefinitions = [
     function: {
       name: 'promote_idea',
       description:
-        "Turn an existing idea into a real project: creates a Project record plus exactly ONE first actionable task (a real reminder). Only call this after the user has clearly said to build/start/promote it — never automatically after just saving an idea. Generate a small, honest first milestone and first task, not a full plan.",
+        "Turn an existing idea into a real project: creates a Project record plus exactly ONE first actionable quest. Only call this after the user has clearly said to build/start/promote it — never automatically after just saving an idea. Generate a small, honest first milestone and first task, not a full plan.",
       parameters: {
         type: 'object',
         properties: {
@@ -155,7 +161,7 @@ export const toolDefinitions = [
             type: 'string',
             description: 'One small, concrete first milestone — e.g. "Validate whether the core loop is fun," not the whole project.',
           },
-          firstTaskTitle: { type: 'string', description: 'One tiny, concrete first task title for a reminder.' },
+          firstTaskTitle: { type: 'string', description: 'One tiny, concrete first quest title.' },
           firstTaskDate: { type: 'string', description: 'ISO date (YYYY-MM-DD) for the first task, usually soon.' },
           firstTaskTime: { type: 'string', description: '24-hour time (HH:mm) for the first task.' },
         },
@@ -214,12 +220,15 @@ export async function executeTool(
   }
 
   switch (name) {
-    case 'add_reminder': {
+    case 'register_quest': {
       const draft: ReminderDraft = {
         title: String(args.title ?? '').trim() || 'Reminder',
         date: String(args.date ?? ''),
         time: String(args.time ?? ''),
         repeat: (REPEAT_VALUES as readonly string[]).includes(args.repeat) ? args.repeat : 'once',
+        durationMin: clampDuration(
+          typeof args.durationMin === 'number' ? args.durationMin : DEFAULT_QUEST_MINUTES
+        ),
         category: (CATEGORY_VALUES as readonly string[]).includes(args.category)
           ? args.category
           : 'personal',
@@ -232,7 +241,7 @@ export async function executeTool(
       return { ok: true, created: draft, reminderId: id };
     }
 
-    case 'list_reminders': {
+    case 'list_quests': {
       const when = args.when ?? 'upcoming';
       const category = args.category ?? 'any';
       let list = ctx.getReminders().filter((r) => r.enabled);
@@ -252,7 +261,7 @@ export async function executeTool(
       return { count: summary.length, reminders: summary };
     }
 
-    case 'complete_reminder': {
+    case 'complete_quest': {
       const match = findByQuery(ctx.getReminders(), String(args.query ?? ''));
       if (!match) return { error: 'not_found', query: args.query };
       const result = await ctx.onComplete(match.id);
@@ -274,7 +283,7 @@ export async function executeTool(
       };
     }
 
-    case 'delete_reminder': {
+    case 'delete_quest': {
       const match = findByQuery(ctx.getReminders(), String(args.query ?? ''));
       if (!match) return { error: 'not_found', query: args.query };
       await ctx.onDelete(match.id);
