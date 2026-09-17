@@ -603,7 +603,18 @@ const styles = StyleSheet.create({
   blockDormant: { opacity: 0.4, borderStyle: 'dashed' },
   spine: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderTopLeftRadius: radii.sm, borderBottomLeftRadius: radii.sm },
   blockBody: { flex: 1 },
-  blockTitle: { ...font.rowTitle, fontSize: 12.5, lineHeight: 15, color: colors.textSecondary },
+  blockTitle: {
+    ...font.rowTitle,
+    fontSize: 12.5,
+    lineHeight: 15,
+    color: colors.textSecondary,
+    // react-native-web defaults Text to `word-wrap: break-word`, which in a
+    // ~55px week column splits words down the middle ("Mornin g run").
+    // These two CSS properties are web-only and ignored on native.
+    ...(Platform.OS === 'web'
+      ? ({ wordBreak: 'normal', overflowWrap: 'normal', hyphens: 'none' } as any)
+      : null),
+  },
   blockTitleDense: { fontSize: 9.5, lineHeight: 11.5, letterSpacing: -0.1 },
   blockTitleShort: { fontSize: 10.5, lineHeight: 12 },
   blockTitleDone: { color: colors.textFainter, textDecorationLine: 'line-through' },

@@ -535,16 +535,18 @@ export function SystemScreen({
     }
   };
 
+  // Each state says something the eyebrow above it does not, so the two
+  // lines never just repeat each other.
   const statusLine =
     orbState === 'idle'
       ? mode === 'forge'
         ? 'Describe your week'
-        : 'Speak to the System'
+        : 'Speak, or write below'
       : orbState === 'listening'
-      ? 'Listening'
+      ? 'Listening…'
       : orbState === 'thinking'
-      ? 'Processing'
-      : 'Speaking';
+      ? 'Working through it…'
+      : 'Speaking…';
 
   return (
     <View style={styles.root}>
@@ -694,7 +696,7 @@ export function SystemScreen({
                 <SystemOrb state={orbState} size={54} />
               </Pressable>
               <View style={styles.orbTextCol}>
-                <Text style={styles.orbEyebrow}>SYSTEM · {orbState.toUpperCase()}</Text>
+                <Text style={styles.orbEyebrow}>{mode === 'forge' ? 'OVERNIGHT SESSION' : 'THE SYSTEM'}</Text>
                 <Text style={styles.orbHeadline}>{statusLine}</Text>
                 {orbState === 'listening' && (
                   <View style={styles.waveWrap}>
@@ -784,7 +786,14 @@ const styles = StyleSheet.create({
   noticeText: { ...font.body, fontSize: 12.5, color: colors.textSecondary, lineHeight: 17 },
   noticeLink: { ...font.label, fontSize: 9, color: colors.xp, letterSpacing: 1.2, marginTop: 2 },
 
-  chatContent: { paddingVertical: spacing(4), gap: spacing(2.5) },
+  chatContent: {
+    // flexGrow + flex-end keeps a short conversation pinned just above the
+    // console instead of stranding one bubble at the top of an empty screen.
+    flexGrow: 1,
+    justifyContent: 'flex-end',
+    paddingVertical: spacing(4),
+    gap: spacing(2.5),
+  },
   userRow: { alignItems: 'flex-end' },
   userBubble: {
     maxWidth: '84%',
