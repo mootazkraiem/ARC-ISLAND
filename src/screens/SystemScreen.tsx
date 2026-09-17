@@ -521,6 +521,18 @@ export function SystemScreen({
     await runConversationTurn(trimmed, key);
   };
 
+  // See the TextInput below: a multiline field swallows Enter, so the send
+  // shortcut has to be wired by hand. `shiftKey` is only present on web's
+  // synthetic keyboard event; on native this handler never sees 'Enter'
+  // because the single-line field submits through onSubmitEditing instead.
+  const handleKeyPress = (e: any) => {
+    const native = e?.nativeEvent ?? {};
+    if (native.key !== 'Enter') return;
+    if (native.shiftKey) return;
+    e.preventDefault?.();
+    submitTyped();
+  };
+
   const toggleMode = () => {
     safeHaptics.selection();
     const next: SystemMode = mode === 'converse' ? 'forge' : 'converse';
@@ -716,6 +728,13 @@ export function SystemScreen({
                 returnKeyType="send"
                 onSubmitEditing={submitTyped}
                 editable={orbState !== 'thinking'}
+                // Forge sessions are long, unstructured descriptions, so the
+                // field goes multiline there. But a multiline TextInput never
+                // fires onSubmitEditing — pressing Enter just inserted a
+                // newline, which silently stranded the user's whole week in
+                // the box with no obvious way to send it. Enter sends,
+                // Shift+Enter breaks the line.
+                onKeyPress={handleKeyPress}
                 multiline={mode === 'forge'}
               />
               <Pressable
