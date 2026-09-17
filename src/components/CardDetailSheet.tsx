@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { theme } from '../theme';
+import { fmtDate } from '../locale';
 import { CardDefinition, RARITY_META, SKILL_META } from '../progression/types';
 
 interface Props {
@@ -39,7 +40,7 @@ export function CardDetailSheet({ card, unlocked, unlockedAt, onClose }: Props) 
 
           {unlocked && unlockedAt && (
             <Text style={styles.date}>
-              Discovered {new Date(unlockedAt).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}
+              Discovered {fmtDate(new Date(unlockedAt), { month: 'long', day: 'numeric', year: 'numeric' })}
             </Text>
           )}
 

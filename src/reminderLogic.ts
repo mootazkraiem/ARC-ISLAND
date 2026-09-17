@@ -1,4 +1,5 @@
 import { Reminder } from './types';
+import { fmtDate } from './locale';
 
 /** Computes the next fire Date for a reminder, for sorting/display purposes only.
  * (Actual firing is handled natively by the OS via the scheduled notification.) */
@@ -45,9 +46,9 @@ export function formatRelativeDay(date: Date): string {
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Tomorrow';
-  const weekday = date.toLocaleDateString(undefined, { weekday: 'long' });
+  const weekday = fmtDate(date, { weekday: 'long' });
   if (diffDays > 1 && diffDays < 7) return weekday;
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return fmtDate(date, { month: 'short', day: 'numeric' });
 }
 
 export function repeatLabel(repeat: Reminder['repeat']): string {

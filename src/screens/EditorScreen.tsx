@@ -15,6 +15,7 @@ import { safeHaptics } from '../haptics';
 import { safeAlert } from '../alert';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Reminder, ReminderDraft } from '../types';
+import { fmtDate, fmtTime } from '../locale';
 import { colors, font, radii, spacing, theme } from '../theme';
 import { WorldBackground } from '../components/world/WorldBackground';
 import { SystemPanel } from '../components/SystemPanel';
@@ -242,7 +243,7 @@ export function EditorScreen({ initial, prefill, onSave, onCancel, onDelete }: P
                   <>
                     <Pressable style={styles.field} onPress={() => setShowDatePicker(true)}>
                       <Text style={styles.fieldText}>
-                        {combined.toLocaleDateString(undefined, {
+                        {fmtDate(combined, {
                           weekday: 'short',
                           month: 'short',
                           day: 'numeric',
@@ -278,7 +279,7 @@ export function EditorScreen({ initial, prefill, onSave, onCancel, onDelete }: P
                   <>
                     <Pressable style={styles.field} onPress={() => setShowTimePicker(true)}>
                       <Text style={styles.fieldText}>
-                        {combined.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+                        {fmtTime(combined, { hour: 'numeric', minute: '2-digit' })}
                       </Text>
                     </Pressable>
                     {showTimePicker && (

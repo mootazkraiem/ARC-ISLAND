@@ -46,7 +46,17 @@ export function CircularRing({
   }));
 
   return (
-    <View style={[styles.wrap, { width: size, height: size }, glow && glowShadow(color)]}>
+    // borderRadius is what makes the glow read as a halo rather than a
+    // dark square: on react-native-web the shadow below compiles to a CSS
+    // box-shadow, which follows the VIEW's box — without rounding it, a
+    // circular ring sits inside a visibly square glow.
+    <View
+      style={[
+        styles.wrap,
+        { width: size, height: size, borderRadius: size / 2 },
+        glow && glowShadow(color),
+      ]}
+    >
       <Svg width={size} height={size}>
         <Circle
           cx={size / 2}

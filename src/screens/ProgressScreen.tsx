@@ -9,6 +9,7 @@ import { RARITY_META, SKILL_META, SKILL_ORDER } from '../progression/types';
 import { ProgressBar } from '../components/ProgressBar';
 import { CircularRing } from '../components/CircularRing';
 import { StreakChain } from '../components/StreakChain';
+import { fmtNumber } from '../locale';
 
 export function ProgressScreen({ onBack, onOpenCollection }: { onBack: () => void; onOpenCollection: () => void }) {
   const progress = useProgress();
@@ -40,7 +41,7 @@ export function ProgressScreen({ onBack, onOpenCollection }: { onBack: () => voi
           <Text style={styles.ringTitle}>{levelTitle(level.level)}</Text>
         </CircularRing>
         <View style={styles.xpPill}>
-          <Text style={styles.xpPillText}>{level.xpTotal.toLocaleString()} XP</Text>
+          <Text style={styles.xpPillText}>{fmtNumber(level.xpTotal)} XP</Text>
         </View>
         <Text style={styles.xpRemainText}>{level.xpForThisLevel - level.xpIntoLevel} to {levelTitle(level.level + 1)}</Text>
       </View>

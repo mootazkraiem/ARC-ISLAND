@@ -23,6 +23,7 @@ import { safeHaptics } from '../haptics';
 import { safeAlert } from '../alert';
 import { isWebSpeechSupported, startWebSpeechRecognition, WebSpeechSession } from '../webSpeechRecognition';
 import { Reminder, ReminderDraft } from '../types';
+import { fmtDate } from '../locale';
 import { theme, colors, font, radii, spacing } from '../theme';
 import { SystemOrb, OrbState } from '../components/SystemOrb';
 import { SystemPanel } from '../components/SystemPanel';
@@ -90,7 +91,7 @@ function scheduleDigest(reminders: Reminder[]): string {
     const d = new Date(today);
     d.setDate(d.getDate() + i);
     const occs = occurrencesForDay(reminders, d);
-    const label = `${d.toLocaleDateString(undefined, { weekday: 'long' })} ${toISODate(d)}`;
+    const label = `${fmtDate(d, { weekday: 'long' })} ${toISODate(d)}`;
     if (occs.length === 0) {
       lines.push(`${label}: clear`);
     } else {
@@ -110,7 +111,7 @@ function systemPrompt(mode: SystemMode, reminders: Reminder[]): string {
     'You are THE SYSTEM of Arc Island — the narrator and scheduling intelligence of a personal progression world. The user is the player. Their commitments are QUESTS; completing quests grants XP, raises skills, extends streaks, and unlocks an archive of discovery cards. A separate Idea Vault holds things that are not yet actionable.',
     'Voice: concise, calm, faintly formal, quietly authoritative. You are a system, not a chirpy assistant. Never say "assistant", "reminder", "to-do", or "task list" — say quest, schedule, the System. Do not over-roleplay, do not use theatrical fantasy language, and never use emoji or markdown. Every reply is read aloud, so keep it to one or two short sentences.',
     'Good phrasings: "Quest registered." "Welcome back." "You have unfinished quests." "I detected an opening in your schedule." "Your schedule contains a conflict. Would you like me to resolve it?"',
-    `Right now it is ${now.toLocaleDateString('en-CA')} (YYYY-MM-DD) at ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} local time, which is a ${now.toLocaleDateString(undefined, { weekday: 'long' })}.`,
+    `Right now it is ${now.toLocaleDateString('en-CA')} (YYYY-MM-DD) at ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} local time, which is a ${fmtDate(now, { weekday: 'long' })}.`,
     'Resolve relative dates/times ("tonight", "tomorrow morning", "in an hour", "next Friday") against that. Always pass concrete dates (YYYY-MM-DD) and 24h times (HH:mm) — never words.',
     // ---- classification: the core of this feature ----
     'Before acting, decide what kind of thing the user just said. Categories: QUEST (a concrete action with a specific or clearly implied time — schedule it), TASK/GOAL (a concrete thing they need to do but with no specific time, e.g. "I need to finish my report this week"), IDEA (a possibility, speculation, or "what if" — not a commitment), THOUGHT (a passing reflection worth keeping), NOTE (information to retain, "remember that..."), EXPERIMENT (something to try/test before committing), PROJECT (an explicit, committed, multi-step undertaking).',

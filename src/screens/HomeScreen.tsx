@@ -14,6 +14,7 @@ import Animated, { FadeInDown } from 'react-native-reanimated';
 import { safeHaptics } from '../haptics';
 import { safeAlert } from '../alert';
 import { Category, Reminder } from '../types';
+import { fmtNumber } from '../locale';
 import { colors, font, radii, spacing } from '../theme';
 import { WorldBackground } from '../components/world/WorldBackground';
 import { SystemPanel } from '../components/SystemPanel';
@@ -215,7 +216,7 @@ export function HomeScreen({
                 <View style={styles.statusInfo}>
                   <Text style={styles.statusTitle}>{levelTitle(level.level)}</Text>
                   <Text style={styles.statusSub}>
-                    {level.xpIntoLevel.toLocaleString()} / {level.xpForThisLevel.toLocaleString()} XP
+                    {fmtNumber(level.xpIntoLevel)} / {fmtNumber(level.xpForThisLevel)} XP
                   </Text>
                   <View style={styles.xpTrack}>
                     <View
@@ -322,7 +323,7 @@ export function HomeScreen({
           </View>
 
           {sorted.length === 0 ? (
-            <EmptyState onClaim={onAdd} />
+            <EmptyState />
           ) : (
             <View style={styles.list}>
               {sorted.map((item) => (

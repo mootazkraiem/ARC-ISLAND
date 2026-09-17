@@ -13,6 +13,7 @@ import { safeHaptics } from '../haptics';
 import { colors, font, radii, spacing, category as categoryTokens, motion } from '../theme';
 import { SystemGlyph } from '../components/SystemGlyph';
 import { Reminder } from '../types';
+import { WEEKDAY_SHORT, mondayIndex } from '../locale';
 import {
   LaidOutOccurrence,
   MIN_QUEST_MINUTES,
@@ -140,7 +141,7 @@ export function WeekGrid({
           return (
             <View key={toISODate(d)} style={[styles.headerCell, { width: colWidth }]}>
               <Text style={[styles.headerDow, isToday && styles.headerDowToday]}>
-                {d.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 3).toUpperCase()}
+                {WEEKDAY_SHORT[mondayIndex(d)]}
               </Text>
               <View style={[styles.headerDateWrap, isToday && styles.headerDateWrapToday]}>
                 <Text style={[styles.headerDate, isToday && styles.headerDateToday]}>{d.getDate()}</Text>

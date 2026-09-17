@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, font, radii, spacing } from '../theme';
 import { Reminder } from '../types';
+import { WEEKDAY_INITIAL, mondayIndex } from '../locale';
 import { SystemGlyph } from './SystemGlyph';
 import { addDays, isSameDay, occurrencesForDay, startOfWeek } from '../calendar/occurrences';
 
@@ -77,7 +78,7 @@ export function WeekPulse({
                 </View>
               </View>
               <Text style={[styles.dayLabel, today && styles.dayLabelToday]}>
-                {day.toLocaleDateString(undefined, { weekday: 'short' }).slice(0, 1)}
+                {WEEKDAY_INITIAL[mondayIndex(day)]}
               </Text>
               {today && <View style={styles.todayDot} />}
             </View>

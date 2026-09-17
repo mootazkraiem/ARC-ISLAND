@@ -5,6 +5,7 @@ import { safeHaptics } from '../haptics';
 import { safeAlert } from '../alert';
 import { colors, font, radii, spacing } from '../theme';
 import { Reminder } from '../types';
+import { fmtDate } from '../locale';
 import { WorldBackground } from '../components/world/WorldBackground';
 import { SystemPanel } from '../components/SystemPanel';
 import { SystemGlyph } from '../components/SystemGlyph';
@@ -99,15 +100,15 @@ export function QuestCalendarScreen({
 
   const rangeLabel = useMemo(() => {
     if (mode === 'day') {
-      return cursor.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+      return fmtDate(cursor, { weekday: 'long', month: 'long', day: 'numeric' });
     }
     if (mode === 'month') {
-      return cursor.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      return fmtDate(cursor, { month: 'long', year: 'numeric' });
     }
     const end = addDays(weekAnchor, 6);
     const sameMonth = weekAnchor.getMonth() === end.getMonth();
-    const a = weekAnchor.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-    const b = end.toLocaleDateString(undefined, sameMonth ? { day: 'numeric' } : { month: 'short', day: 'numeric' });
+    const a = fmtDate(weekAnchor, { month: 'short', day: 'numeric' });
+    const b = fmtDate(end, sameMonth ? { day: 'numeric' } : { month: 'short', day: 'numeric' });
     return `${a} — ${b}`;
   }, [mode, cursor, weekAnchor]);
 

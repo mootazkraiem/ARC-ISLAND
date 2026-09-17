@@ -1,4 +1,5 @@
 import { Category, Reminder, ReminderDraft, RepeatMode } from '../types';
+import { fmtDate } from '../locale';
 import {
   DEFAULT_QUEST_MINUTES,
   QuestOccurrence,
@@ -212,7 +213,7 @@ export function describeConflicts(reminders: Reminder[], from: Date, days = 7): 
     const occs = occurrencesForDay(reminders, day);
     for (const [a, b] of findConflicts(occs)) {
       out.push(
-        `${day.toLocaleDateString(undefined, { weekday: 'long' })}: "${a.reminder.title}" overlaps "${b.reminder.title}"`
+        `${fmtDate(day, { weekday: 'long' })}: "${a.reminder.title}" overlaps "${b.reminder.title}"`
       );
     }
   }

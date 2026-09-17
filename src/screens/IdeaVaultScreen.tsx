@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { safeAlert } from '../alert';
 import { theme } from '../theme';
+import { fmtDate } from '../locale';
 import { useVault } from '../thoughts/useVault';
 import { Vault } from '../thoughts/vault';
 import { Idea, IdeaStatus } from '../thoughts/types';
@@ -28,7 +29,7 @@ function relativeDate(iso: string): string {
   if (days <= 0) return 'Today';
   if (days === 1) return 'Yesterday';
   if (days < 7) return `${days} days ago`;
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return fmtDate(d, { month: 'short', day: 'numeric' });
 }
 
 export function IdeaVaultScreen({ onBack }: { onBack: () => void }) {
