@@ -15,14 +15,20 @@ import { WorldBackground } from '../components/world/WorldBackground';
 import { SystemGlyph } from '../components/SystemGlyph';
 import { clearApiKey, getApiKey, setApiKey } from '../assistant/apiKeyStore';
 import { PROVIDER_CONFIG } from '../assistant/providerConfig';
+import { SILENCE_CHOICES, getSilenceMs, loadSilenceMs, setSilenceMs } from '../voicePrefs';
 
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
   const [key, setKey] = useState('');
   const [saved, setSaved] = useState(false);
   const [hasExisting, setHasExisting] = useState(false);
+  // Web-only: how long the System waits through a pause before deciding
+  // the speaker has finished. Native ends its own turn on button release,
+  // so this control is meaningless there and is hidden.
+  const [silenceMs, setSilence] = useState<number>(getSilenceMs());
 
   useEffect(() => {
     (async () => {
+      setSilence(await loadSilenceMs());
       const existing = await getApiKey();
       if (existing) {
         setHasExisting(true);
@@ -95,6 +101,39 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
           <Text style={styles.link}>Get a free API key at openrouter.ai/keys ↗</Text>
         </Pressable>
 
+        {Platform.OS === 'web' && (
+          <View style={styles.voiceBox}>
+            <Text style={styles.voiceTitle}>HOW LONG THE SYSTEM WAITS</Text>
+            <Text style={styles.voiceBody}>
+              When you speak, the System keeps listening straight through your pauses and only
+              answers once you've gone quiet for this long. You can also just say “that's it”,
+              “go ahead”, or “you can schedule that” to hand over immediately — or tap the orb.
+            </Text>
+            <View style={styles.voiceRow}>
+              {SILENCE_CHOICES.map((c) => {
+                const active = silenceMs === c.ms;
+                return (
+                  <Pressable
+                    key={c.ms}
+                    onPress={() => {
+                      setSilence(c.ms);
+                      setSilenceMs(c.ms);
+                    }}
+                    style={[styles.voiceChip, active && styles.voiceChipActive]}
+                  >
+                    <Text style={[styles.voiceChipText, active && styles.voiceChipTextActive]}>
+                      {c.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text style={styles.voiceHint}>
+              {SILENCE_CHOICES.find((c) => c.ms === silenceMs)?.hint ?? ''}
+            </Text>
+          </View>
+        )}
+
         <View style={styles.costBox}>
           <Text style={styles.costTitle}>Roughly what this costs</Text>
           <Text style={styles.costBody}>
@@ -162,6 +201,31 @@ const styles = StyleSheet.create({
   clearBtn: { backgroundColor: theme.colors.dangerSoft },
   clearBtnText: { color: theme.colors.danger, fontWeight: '700', fontSize: 15 },
   link: { color: colors.signal, fontSize: 13, marginTop: theme.spacing(2), marginBottom: theme.spacing(6) },
+  voiceBox: {
+    marginTop: theme.spacing(6),
+    backgroundColor: colors.holo,
+    borderWidth: 1,
+    borderColor: colors.holoBorder,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing(4),
+    gap: theme.spacing(2),
+  },
+  voiceTitle: { ...theme.font.label, fontSize: 9, color: colors.arcCyan, letterSpacing: 1.8 },
+  voiceBody: { ...theme.font.caption, fontSize: 12, color: theme.colors.textDim, lineHeight: 18 },
+  voiceRow: { flexDirection: 'row', gap: theme.spacing(2), marginTop: theme.spacing(1) },
+  voiceChip: {
+    flex: 1,
+    paddingVertical: theme.spacing(2.25),
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: colors.holoBorder,
+    backgroundColor: 'rgba(4,4,7,0.4)',
+    alignItems: 'center',
+  },
+  voiceChipActive: { borderColor: 'rgba(92,225,255,0.55)', backgroundColor: colors.arcCyanSoft },
+  voiceChipText: { ...theme.font.caption, fontSize: 12.5, fontWeight: '700', color: colors.textFaint },
+  voiceChipTextActive: { color: colors.arcCyan },
+  voiceHint: { ...theme.font.caption, fontSize: 11, color: theme.colors.textFainter },
   costBox: {
     backgroundColor: colors.holo,
     borderRadius: theme.radius.md,

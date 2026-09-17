@@ -6,9 +6,9 @@ import { colors } from '../theme';
 /** Waveform bars shown while Arc Island is listening — purely decorative
  * motion (the real transcript comes back only once recording stops), but
  * it communicates "I'm hearing you" the way the approved design intends. */
-export function ListeningWave({ bars = 20 }: { bars?: number }) {
+export function ListeningWave({ bars = 20, height = 40 }: { bars?: number; height?: number }) {
   return (
-    <View style={styles.row}>
+    <View style={[styles.row, { height }]}>
       {Array.from({ length: bars }).map((_, i) => (
         <Bar key={i} index={i} />
       ))}
@@ -70,7 +70,7 @@ function Dot({ delay }: { delay: number }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 3, height: 40 },
+  row: { flexDirection: 'row', alignItems: 'flex-end', gap: 3, height: 40, overflow: 'hidden' },
   barTrack: { flex: 1, height: '100%', justifyContent: 'flex-end' },
   bar: { width: '100%', borderRadius: 99, backgroundColor: colors.signal, minHeight: 4 },
   dotsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, height: 40 },

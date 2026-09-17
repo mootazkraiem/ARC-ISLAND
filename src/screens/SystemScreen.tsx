@@ -22,6 +22,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { safeHaptics } from '../haptics';
 import { safeAlert } from '../alert';
 import { isWebSpeechSupported, startWebSpeechRecognition, WebSpeechSession } from '../webSpeechRecognition';
+import { getSilenceMs, loadSilenceMs } from '../voicePrefs';
 import { Reminder, ReminderDraft } from '../types';
 import { fmtDate } from '../locale';
 import { theme, colors, font, radii, spacing } from '../theme';
@@ -245,6 +246,11 @@ export function SystemScreen({
   const [hasKey, setHasKey] = useState<boolean | null>(null);
   const [capturedIdea, setCapturedIdea] = useState<string | null>(null);
   const [forgeNotice, setForgeNotice] = useState<string | null>(null);
+  // Live speech-in-progress text (web only). `committed` is what the
+  // recognizer has finalized, `pending` the phrase still in flight. Shown
+  // while listening so the user can SEE they're still being heard instead
+  // of guessing whether the System cut them off.
+  const [live, setLive] = useState<{ committed: string; pending: string } | null>(null);
 
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const webSpeechRef = useRef<WebSpeechSession | null>(null);
@@ -259,6 +265,7 @@ export function SystemScreen({
 
   useEffect(() => {
     resolveApiKey().then((k) => setHasKey(!!k));
+    loadSilenceMs();
     return () => {
       Speech.stop();
       recorder.stop().catch(() => {});
@@ -429,20 +436,30 @@ export function SystemScreen({
       safeHaptics.impact(Haptics.ImpactFeedbackStyle.Medium);
       webSpeechGotResultRef.current = false;
       setOrbState('listening');
-      webSpeechRef.current = startWebSpeechRecognition({
-        onResult: (transcript) => {
-          webSpeechGotResultRef.current = true;
-          pushBubble('user', transcript);
-          runConversationTurn(transcript, key);
+      setLive({ committed: '', pending: '' });
+      webSpeechRef.current = startWebSpeechRecognition(
+        {
+          onResult: (transcript) => {
+            webSpeechGotResultRef.current = true;
+            setLive(null);
+            pushBubble('user', transcript);
+            runConversationTurn(transcript, key);
+          },
+          onInterim: (committed, pending) => setLive({ committed, pending }),
+          onError: (message) => {
+            pushBubble('system', `I could not resolve that: ${message}`);
+          },
+          onEnd: () => {
+            webSpeechRef.current = null;
+            setLive(null);
+            if (!webSpeechGotResultRef.current) setOrbState('idle');
+          },
         },
-        onError: (message) => {
-          pushBubble('system', `I could not resolve that: ${message}`);
-        },
-        onEnd: () => {
-          webSpeechRef.current = null;
-          if (!webSpeechGotResultRef.current) setOrbState('idle');
-        },
-      });
+        // The whole point of the rewrite: the turn ends after a real
+        // stretch of quiet (or an explicit hand-off phrase), not at the
+        // first breath the speaker takes.
+        { silenceMs: getSilenceMs() }
+      );
       return;
     }
 
@@ -555,7 +572,9 @@ export function SystemScreen({
         ? 'Describe your week'
         : 'Speak, or write below'
       : orbState === 'listening'
-      ? 'Listening…'
+      ? live && (live.committed || live.pending)
+        ? 'Still listening…'
+        : 'Listening — take your time'
       : orbState === 'thinking'
       ? 'Working through it…'
       : 'Speaking…';
@@ -695,6 +714,17 @@ export function SystemScreen({
           />
 
           {/* ── the System console ── */}
+          {live && (live.committed || live.pending) && (
+            <View style={styles.livePanel}>
+              <Text style={styles.liveText}>
+                <Text style={styles.liveCommitted}>{live.committed}</Text>
+                {live.pending ? (
+                  <Text style={styles.livePending}>{live.committed ? ' ' : ''}{live.pending}</Text>
+                ) : null}
+              </Text>
+            </View>
+          )}
+
           <SystemPanel
             tone={orbState === 'listening' ? 'cyan' : orbState === 'speaking' ? 'done' : 'signal'}
             lit
@@ -704,16 +734,29 @@ export function SystemScreen({
             style={styles.console}
           >
             <View style={styles.orbRow}>
-              <Pressable onPress={handleOrbPress} disabled={orbState === 'thinking'}>
+              <Pressable
+                onPress={handleOrbPress}
+                disabled={orbState === 'thinking'}
+                // Stable hook for automated turn-taking tests; react-native-web
+                // emits this as data-testid and it is inert on native.
+                testID="system-orb"
+                accessibilityRole="button"
+                accessibilityLabel="Speak to the System"
+              >
                 <SystemOrb state={orbState} size={54} />
               </Pressable>
               <View style={styles.orbTextCol}>
                 <Text style={styles.orbEyebrow}>{mode === 'forge' ? 'OVERNIGHT SESSION' : 'THE SYSTEM'}</Text>
                 <Text style={styles.orbHeadline}>{statusLine}</Text>
                 {orbState === 'listening' && (
-                  <View style={styles.waveWrap}>
-                    <ListeningWave bars={16} />
-                  </View>
+                  <>
+                    <Text style={styles.listenHint} numberOfLines={2}>
+                      {`Pause ${Math.round(getSilenceMs() / 1000)}s · say “that's it” · or tap the orb`}
+                    </Text>
+                    <View style={styles.waveWrap}>
+                      <ListeningWave bars={16} height={18} />
+                    </View>
+                  </>
                 )}
               </View>
             </View>
@@ -860,7 +903,20 @@ const styles = StyleSheet.create({
   orbTextCol: { flex: 1, gap: 2 },
   orbEyebrow: { ...font.label, fontSize: 9, color: colors.arcCyan, letterSpacing: 1.8 },
   orbHeadline: { ...font.heading, fontSize: 16, color: colors.text },
-  waveWrap: { height: 22, marginTop: 2, opacity: 0.8 },
+  waveWrap: { height: 18, marginTop: 4, opacity: 0.7, overflow: 'hidden' },
+  listenHint: { ...font.caption, fontSize: 10, color: colors.textFainter, marginTop: 3, lineHeight: 14 },
+  livePanel: {
+    borderWidth: 1,
+    borderColor: 'rgba(92,225,255,0.3)',
+    backgroundColor: 'rgba(92,225,255,0.06)',
+    borderRadius: radii.md,
+    paddingHorizontal: spacing(3.5),
+    paddingVertical: spacing(2.5),
+    marginBottom: spacing(2),
+  },
+  liveText: { fontSize: 14, lineHeight: 20, fontFamily: theme.fontFamily.manropeMedium },
+  liveCommitted: { color: colors.text },
+  livePending: { color: colors.textFaint, fontStyle: 'italic' },
 
   typedRow: { flexDirection: 'row', gap: spacing(2), alignItems: 'flex-end' },
   typedInput: {
