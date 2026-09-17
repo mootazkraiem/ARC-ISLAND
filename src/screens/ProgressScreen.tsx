@@ -39,7 +39,7 @@ export function ProgressScreen({ onBack, onOpenCollection }: { onBack: () => voi
         </View>
 
       <View style={styles.ringWrap}>
-        <CircularRing progress={level.xpIntoLevel / level.xpForThisLevel} size={186} strokeWidth={9} color={colors.signal}>
+        <CircularRing progress={level.xpIntoLevel / level.xpForThisLevel} size={150} strokeWidth={8} innerFill color={colors.signal}>
           <Text style={styles.ringLabel}>LEVEL</Text>
           <Text style={styles.ringNumber}>{level.level}</Text>
           <Text style={styles.ringTitle}>{levelTitle(level.level)}</Text>
@@ -80,7 +80,7 @@ export function ProgressScreen({ onBack, onOpenCollection }: { onBack: () => voi
       <Text style={styles.sectionTitle}>CHAIN · {progress.currentStreak} DAYS</Text>
       <View style={styles.chainCard}>
         <View style={styles.chainHeaderRow}>
-          <Text style={styles.chainSub}>Keep it alive by completing at least one thing a day.</Text>
+          <Text style={styles.chainSub}>Seal at least one quest a day to keep the chain unbroken.</Text>
           <Text style={styles.chainBest}>best {progress.longestStreak}</Text>
         </View>
         <StreakChain dailyLog={progress.dailyLog} />

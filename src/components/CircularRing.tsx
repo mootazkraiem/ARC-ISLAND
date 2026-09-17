@@ -14,6 +14,9 @@ interface Props {
   color?: string;
   track?: string;
   glow?: boolean;
+  /** Fills the ring's interior with a faint lit disc. Without it a large
+   * ring reads as a hole punched in the screen rather than a medallion. */
+  innerFill?: boolean;
   children?: React.ReactNode;
 }
 
@@ -27,6 +30,7 @@ export function CircularRing({
   color = colors.signal,
   track = 'rgba(255,255,255,0.07)',
   glow = true,
+  innerFill = false,
   children,
 }: Props) {
   const radius = (size - strokeWidth) / 2;
@@ -58,6 +62,9 @@ export function CircularRing({
       ]}
     >
       <Svg width={size} height={size}>
+        {innerFill && (
+          <Circle cx={size / 2} cy={size / 2} r={radius} fill="rgba(124,92,255,0.07)" />
+        )}
         <Circle
           cx={size / 2}
           cy={size / 2}

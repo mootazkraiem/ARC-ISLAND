@@ -136,8 +136,8 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.pill,
     backgroundColor: colors.holo,
   },
-  filterChipActive: { backgroundColor: colors.signal },
-  filterChipText: { ...theme.font.caption, color: theme.colors.textDim, fontWeight: '700', letterSpacing: 0.5 },
-  filterChipTextActive: { color: '#FFFFFF' },
+  filterChipActive: { backgroundColor: colors.signalSoft, borderColor: 'rgba(124,92,255,0.5)' },
+  filterChipText: { ...theme.font.label, fontSize: 8.5, color: colors.textFaint, letterSpacing: 1.2 },
+  filterChipTextActive: { color: colors.signal },
   grid: { paddingBottom: theme.spacing(10) },
 });

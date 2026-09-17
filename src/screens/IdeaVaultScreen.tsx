@@ -93,8 +93,12 @@ export function IdeaVaultScreen({ onBack }: { onBack: () => void }) {
 
       {ideas.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyIcon}>💡</Text>
-          <Text style={styles.emptyText}>Nothing here yet. Tell Arc Island "I have an idea..." to capture one.</Text>
+          <View style={styles.emptyIconWrap}>
+            <SystemGlyph name="vault" size={28} color={colors.signal} strokeWidth={1.3} opacity={0.8} />
+          </View>
+          <Text style={styles.emptyText}>
+            The Vault is sealed and empty. Tell the System "I have an idea…" and it will be kept here.
+          </Text>
         </View>
       ) : (
         <FlatList
@@ -130,7 +134,7 @@ export function IdeaVaultScreen({ onBack }: { onBack: () => void }) {
 
               {(item.status === 'captured' || item.status === 'review') && (
                 <View style={styles.actionRow}>
-                  <Text style={styles.promoteHint}>Ask Arc Island to promote this to a project →</Text>
+                  <Text style={styles.promoteHint}>Ask the System to promote this to a project →</Text>
                   <View style={styles.actionBtns}>
                     <Pressable onPress={() => handleArchive(item)} style={styles.smallBtn}>
                       <Text style={styles.smallBtnText}>Archive</Text>
@@ -170,13 +174,30 @@ const styles = StyleSheet.create({
   subtitle: { ...theme.font.caption, color: theme.colors.textDim, marginTop: theme.spacing(1.5), marginBottom: theme.spacing(3), lineHeight: 18 },
   reviewNote: { ...theme.font.caption, color: colors.signal, marginBottom: theme.spacing(3) },
   filterList: { flexGrow: 0, marginBottom: theme.spacing(3) },
-  filterChip: { paddingHorizontal: theme.spacing(3), paddingVertical: theme.spacing(1.5), borderRadius: theme.radius.pill, backgroundColor: colors.holo },
-  filterChipActive: { backgroundColor: colors.signal },
-  filterChipText: { ...theme.font.caption, color: theme.colors.textDim, fontWeight: '700', letterSpacing: 0.5 },
-  filterChipTextActive: { color: '#FFFFFF' },
+  filterChip: {
+    paddingHorizontal: theme.spacing(3),
+    paddingVertical: theme.spacing(1.5),
+    borderRadius: theme.radius.pill,
+    backgroundColor: colors.holo,
+    borderWidth: 1,
+    borderColor: colors.holoBorder,
+  },
+  filterChipActive: { backgroundColor: colors.signalSoft, borderColor: 'rgba(124,92,255,0.5)' },
+  filterChipText: { ...theme.font.label, fontSize: 8.5, color: colors.textFaint, letterSpacing: 1.2 },
+  filterChipTextActive: { color: colors.signal },
   list: { paddingBottom: theme.spacing(10) },
   empty: { alignItems: 'center', paddingTop: theme.spacing(12) },
-  emptyIcon: { fontSize: 32, marginBottom: theme.spacing(3) },
+  emptyIconWrap: {
+    width: 62,
+    height: 62,
+    borderRadius: theme.radius.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.holo,
+    borderWidth: 1,
+    borderColor: colors.holoBorder,
+    marginBottom: theme.spacing(3),
+  },
   emptyText: { ...theme.font.body, color: theme.colors.textDim, textAlign: 'center', paddingHorizontal: theme.spacing(8) },
   card: {
     backgroundColor: colors.holo,

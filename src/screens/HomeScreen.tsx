@@ -209,6 +209,7 @@ export function HomeScreen({
                   size={62}
                   strokeWidth={4}
                   color={colors.signal}
+                  innerFill
                 >
                   <Text style={styles.ringNum}>{level.level}</Text>
                 </CircularRing>

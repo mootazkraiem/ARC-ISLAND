@@ -37,7 +37,14 @@ if (Platform.OS !== 'web') {
   // even while the app is open.
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
+      // SDK 57 split the old `shouldShowAlert` into two required fields:
+      // `shouldShowBanner` (the heads-up banner) and `shouldShowList` (the
+      // notification centre entry). Both are set to what shouldShowAlert
+      // used to mean, so foreground behaviour is unchanged; shouldShowAlert
+      // is kept for older runtimes that still read it.
       shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
     }),
