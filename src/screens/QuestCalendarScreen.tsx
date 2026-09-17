@@ -269,7 +269,7 @@ export function QuestCalendarScreen({
 
         {!proposal && (
           <Pressable style={styles.forgeCta} onPress={onOpenSystem}>
-            <SystemGlyph name="forge" size={17} color={colors.xp} />
+            <SystemGlyph name="forge" size={22} color={colors.xp} strokeWidth={1.6} />
             <Text style={styles.forgeCtaText}>FORGE MY WEEK</Text>
             <Text style={styles.forgeCtaHint}>Tell the System what your week holds</Text>
           </Pressable>

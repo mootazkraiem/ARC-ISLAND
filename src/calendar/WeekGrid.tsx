@@ -326,8 +326,12 @@ function QuestBlock({
   onComplete: () => void;
   onReschedule: WeekGridProps['onReschedule'];
 }) {
-  const laneWidth = colWidth / occ.laneCount;
-  const baseLeft = GUTTER + dayIdx * colWidth + occ.lane * laneWidth;
+  // Overlapping lanes rather than equal columns: each additional lane is
+  // stepped right by a small inset and the block keeps most of the column
+  // width, so a contested slot stays readable. Later lanes draw on top.
+  const laneInset = occ.laneCount > 1 ? Math.min(16, colWidth * 0.28) : 0;
+  const laneWidth = colWidth - laneInset * (occ.laneCount - 1);
+  const baseLeft = GUTTER + dayIdx * colWidth + occ.lane * laneInset;
   const baseTop = occ.startMin * PX_PER_MIN;
   const baseHeight = Math.max(24, occ.durationMin * PX_PER_MIN - 2);
 
@@ -439,12 +443,15 @@ function QuestBlock({
       { scale: 1 + dragging.value * 0.03 },
     ],
     height: Math.max(24, baseHeight + dh.value),
-    zIndex: dragging.value > 0 || resizing.value > 0 ? 50 : 1,
+    zIndex: dragging.value > 0 || resizing.value > 0 ? 50 : 2 + occ.lane,
     opacity: 1 - dragging.value * 0.15,
     shadowOpacity: 0.25 + dragging.value * 0.5,
   }));
 
   const short = baseHeight < 40;
+  // Week view gets much narrower columns than day view, so it needs its own
+  // type scale — one size for both is why titles were breaking mid-word.
+  const dense = columns === 7;
 
   return (
     <>
@@ -490,14 +497,16 @@ function QuestBlock({
             <Text
               style={[
                 styles.blockTitle,
+                dense && styles.blockTitleDense,
                 short && styles.blockTitleShort,
                 occ.state === 'completed' && styles.blockTitleDone,
               ]}
-              numberOfLines={short ? 1 : 2}
+              numberOfLines={short ? 1 : dense ? 3 : 2}
+              ellipsizeMode="tail"
             >
               {occ.reminder.title}
             </Text>
-            {!short && (
+            {!short && !dense && (
               <Text style={[styles.blockTime, { color: tone }]} numberOfLines={1}>
                 {timeFromMinutes(occ.startMin)}
               </Text>
@@ -583,9 +592,9 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     borderWidth: 1,
     borderLeftWidth: 0,
-    paddingVertical: 4,
-    paddingLeft: 8,
-    paddingRight: 4,
+    paddingVertical: 3,
+    paddingLeft: 6,
+    paddingRight: 3,
     overflow: 'hidden',
     shadowOpacity: 0.25,
     shadowRadius: 10,
@@ -594,7 +603,8 @@ const styles = StyleSheet.create({
   blockDormant: { opacity: 0.4, borderStyle: 'dashed' },
   spine: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3, borderTopLeftRadius: radii.sm, borderBottomLeftRadius: radii.sm },
   blockBody: { flex: 1 },
-  blockTitle: { ...font.rowTitle, fontSize: 11.5, lineHeight: 14, color: colors.textSecondary },
+  blockTitle: { ...font.rowTitle, fontSize: 12.5, lineHeight: 15, color: colors.textSecondary },
+  blockTitleDense: { fontSize: 9.5, lineHeight: 11.5, letterSpacing: -0.1 },
   blockTitleShort: { fontSize: 10.5, lineHeight: 12 },
   blockTitleDone: { color: colors.textFainter, textDecorationLine: 'line-through' },
   blockTime: { ...font.caption, fontSize: 9.5, marginTop: 1 },
