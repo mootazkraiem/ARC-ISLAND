@@ -1,6 +1,6 @@
-// Stable entry point Arc Island's UI (AssistantScreen.tsx) calls through. It
+// Stable entry point Arc Island's UI (SystemScreen.tsx) calls through. It
 // deliberately knows nothing about OpenRouter specifically — today
-// `provider` is an OpenRouterProvider, but AssistantScreen and tools.ts
+// `provider` is an OpenRouterProvider, but SystemScreen and tools.ts
 // only ever see chatCompletion()/transcribeAudio(), so swapping in a
 // different AIProvider (another hosted API, or a local/offline model
 // later) is a one-line change in this file, not a rewrite of Arc Island.

@@ -64,7 +64,7 @@ export async function clearApiKey(): Promise<void> {
  * manually saved in Settings if anything (always wins — this is how you
  * "replace" the pre-configured key), otherwise the local-dev default from
  * .env (PROVIDER_CONFIG.devDefaultApiKey) if one's set, otherwise null
- * (same "no key yet" behavior as before this existed). AssistantScreen.tsx
+ * (same "no key yet" behavior as before this existed). SystemScreen.tsx
  * calls this, not getApiKey(), for every actual chat/transcription call —
  * that's what makes a dev build with a .env key "just work" with no
  * Settings visit on a fresh install.

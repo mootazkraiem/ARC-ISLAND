@@ -60,7 +60,7 @@ export class OpenRouterProvider implements AIProvider {
    * OpenRouter model billed per minute — the web build never calls this at
    * all anymore; it uses the browser's own free, on-device/browser-vendor
    * SpeechRecognition instead (see ../../webSpeechRecognition.ts and its
-   * wiring in AssistantScreen.tsx), so no audio is ever recorded or
+   * wiring in SystemScreen.tsx), so no audio is ever recorded or
    * uploaded on web, and this endpoint is never hit from there.
    *
    * The guard below is a hard safety net, not just a convention: if any

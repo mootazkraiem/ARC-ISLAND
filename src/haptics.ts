@@ -1,5 +1,5 @@
 // Thin wrapper around expo-haptics used by every screen that fires haptic
-// feedback (ReminderCard, HomeScreen, EditorScreen, AssistantScreen).
+// feedback (ReminderCard, HomeScreen, EditorScreen, SystemScreen).
 //
 // Added for web compatibility: haptic feedback has no meaningful equivalent
 // in a browser tab, and expo-haptics does not list Web as a supported

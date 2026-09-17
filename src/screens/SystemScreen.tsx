@@ -39,7 +39,7 @@ import { occurrencesForDay, toISODate } from '../calendar/occurrences';
 // ─────────────────────────────────────────────────────────────────────────
 // THE SYSTEM — Arc Island's narrator.
 //
-// This is the renamed, rebuilt AssistantScreen. The conversation engine,
+// This is the renamed, rebuilt assistant screen. The conversation engine,
 // tool-calling loop, $0 web voice path, and native voice path are all the
 // same proven code; what changed is that the System is now a presence with
 // four visible states, an actual spoken greeting when summoned, and a

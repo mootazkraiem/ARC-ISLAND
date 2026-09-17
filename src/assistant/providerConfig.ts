@@ -1,6 +1,6 @@
 // The one place that knows which AI provider Arc Island talks to, and which
 // models it asks that provider for. Everything else in src/assistant and
-// src/screens/AssistantScreen.tsx is provider-agnostic — to point Arc Island at
+// src/screens/SystemScreen.tsx is provider-agnostic — to point Arc Island at
 // a different OpenAI-compatible endpoint (another hosted router, or a
 // local/offline model server on your own network) later, edit this file
 // only, not the conversation or tool-calling logic.
