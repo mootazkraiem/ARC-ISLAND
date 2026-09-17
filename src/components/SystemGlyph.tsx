@@ -102,7 +102,7 @@ type Common = {
   strokeWidth: number;
   strokeLinecap: 'round';
   strokeLinejoin: 'round';
-  fill: 'none';
+  fill: string;
 };
 
 function renderGlyph(name: GlyphName, c: Common, color: string, charged: boolean, s: number) {
