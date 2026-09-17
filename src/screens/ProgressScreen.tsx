@@ -10,6 +10,8 @@ import { ProgressBar } from '../components/ProgressBar';
 import { CircularRing } from '../components/CircularRing';
 import { StreakChain } from '../components/StreakChain';
 import { fmtNumber } from '../locale';
+import { WorldBackground } from '../components/world/WorldBackground';
+import { SystemGlyph } from '../components/SystemGlyph';
 
 export function ProgressScreen({ onBack, onOpenCollection }: { onBack: () => void; onOpenCollection: () => void }) {
   const progress = useProgress();
@@ -26,13 +28,15 @@ export function ProgressScreen({ onBack, onOpenCollection }: { onBack: () => voi
   }, [progress.unlockedCards]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <Pressable onPress={onBack} hitSlop={12}>
-          <Text style={styles.backText}>‹ Back</Text>
+    <View style={styles.root}>
+      <WorldBackground intensity={0.8} />
+      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+        <Pressable onPress={onBack} hitSlop={12} style={styles.backBtn}>
+          <SystemGlyph name="back" size={17} color={colors.textDim} />
         </Pressable>
-        <Text style={styles.eyebrow}>YOUR SYSTEM</Text>
-      </View>
+          <Text style={styles.eyebrow}>PROGRESSION</Text>
+        </View>
 
       <View style={styles.ringWrap}>
         <CircularRing progress={level.xpIntoLevel / level.xpForThisLevel} size={186} strokeWidth={9} color={colors.signal}>
@@ -127,7 +131,8 @@ export function ProgressScreen({ onBack, onOpenCollection }: { onBack: () => voi
           Open Collection — {Object.keys(progress.unlockedCards).length}/{CARD_DEFINITIONS.length}
         </Text>
       </Pressable>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -146,7 +151,18 @@ const SKILL_TINT: Record<string, string> = {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.void },
+  root: { flex: 1, backgroundColor: colors.void },
+  container: { flex: 1, backgroundColor: 'transparent' },
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.holo,
+    borderWidth: 1,
+    borderColor: colors.holoBorder,
+  },
   content: { paddingHorizontal: spacing(5), paddingTop: spacing(4), paddingBottom: spacing(12) },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing(4) },
   backText: { color: colors.signal, fontSize: 16, fontWeight: '600' },
@@ -179,7 +195,7 @@ const styles = StyleSheet.create({
   skillLabel: { ...font.rowTitle, color: colors.textSecondary, fontSize: 14 },
   skillLevel: { ...font.label, fontSize: 10, color: colors.textFaint },
   chainCard: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.holo,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: radii.lg,
@@ -190,7 +206,7 @@ const styles = StyleSheet.create({
   chainSub: { ...font.caption, flex: 1, color: colors.textFaint },
   chainBest: { ...font.caption, color: colors.textFaint, fontWeight: '700' },
   challengeCard: {
-    backgroundColor: colors.card,
+    backgroundColor: colors.holo,
     borderWidth: 1,
     borderRadius: radii.lg,
     padding: spacing(4),
@@ -208,7 +224,7 @@ const styles = StyleSheet.create({
   recentPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: colors.holo,
     borderWidth: 1,
     borderColor: colors.cardBorder,
     borderRadius: radii.pill,

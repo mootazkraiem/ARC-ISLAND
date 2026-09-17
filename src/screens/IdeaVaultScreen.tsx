@@ -1,7 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { safeAlert } from '../alert';
-import { theme } from '../theme';
+import { theme, colors } from '../theme';
+import { WorldBackground } from '../components/world/WorldBackground';
+import { SystemGlyph } from '../components/SystemGlyph';
 import { fmtDate } from '../locale';
 import { useVault } from '../thoughts/useVault';
 import { Vault } from '../thoughts/vault';
@@ -53,13 +55,15 @@ export function IdeaVaultScreen({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={onBack} hitSlop={12}>
-          <Text style={styles.backText}>‹ Back</Text>
+    <View style={styles.root}>
+      <WorldBackground intensity={0.8} />
+      <View style={styles.container}>
+        <View style={styles.header}>
+        <Pressable onPress={onBack} hitSlop={12} style={styles.backBtn}>
+          <SystemGlyph name="back" size={17} color={colors.textDim} />
         </Pressable>
-        <Text style={styles.eyebrow}>VAULT</Text>
-      </View>
+          <Text style={styles.eyebrow}>THE VAULT</Text>
+        </View>
 
       <Text style={styles.title}>Idea Vault</Text>
       <Text style={styles.subtitle}>
@@ -141,21 +145,33 @@ export function IdeaVaultScreen({ onBack }: { onBack: () => void }) {
           )}
         />
       )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.bg, paddingHorizontal: theme.spacing(5) },
+  root: { flex: 1, backgroundColor: colors.void },
+  container: { flex: 1, backgroundColor: 'transparent', paddingHorizontal: theme.spacing(4) },
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.holo,
+    borderWidth: 1,
+    borderColor: colors.holoBorder,
+  },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: theme.spacing(4) },
-  backText: { color: theme.colors.accent, fontSize: 16, fontWeight: '600' },
+  backText: { color: colors.signal, fontSize: 16, fontWeight: '600' },
   eyebrow: { ...theme.font.label, color: theme.colors.textFaint, letterSpacing: 1.5 },
   title: { ...theme.font.title, color: theme.colors.text, marginTop: theme.spacing(3) },
   subtitle: { ...theme.font.caption, color: theme.colors.textDim, marginTop: theme.spacing(1.5), marginBottom: theme.spacing(3), lineHeight: 18 },
-  reviewNote: { ...theme.font.caption, color: theme.colors.accent, marginBottom: theme.spacing(3) },
+  reviewNote: { ...theme.font.caption, color: colors.signal, marginBottom: theme.spacing(3) },
   filterList: { flexGrow: 0, marginBottom: theme.spacing(3) },
-  filterChip: { paddingHorizontal: theme.spacing(3), paddingVertical: theme.spacing(1.5), borderRadius: theme.radius.pill, backgroundColor: theme.colors.bgElevated },
-  filterChipActive: { backgroundColor: theme.colors.accent },
+  filterChip: { paddingHorizontal: theme.spacing(3), paddingVertical: theme.spacing(1.5), borderRadius: theme.radius.pill, backgroundColor: colors.holo },
+  filterChipActive: { backgroundColor: colors.signal },
   filterChipText: { ...theme.font.caption, color: theme.colors.textDim, fontWeight: '700', letterSpacing: 0.5 },
   filterChipTextActive: { color: '#FFFFFF' },
   list: { paddingBottom: theme.spacing(10) },
@@ -163,21 +179,21 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 32, marginBottom: theme.spacing(3) },
   emptyText: { ...theme.font.body, color: theme.colors.textDim, textAlign: 'center', paddingHorizontal: theme.spacing(8) },
   card: {
-    backgroundColor: theme.colors.card,
+    backgroundColor: colors.holo,
     borderWidth: 1,
-    borderColor: theme.colors.cardBorder,
+    borderColor: colors.holoBorder,
     borderRadius: theme.radius.lg,
     padding: theme.spacing(4),
     marginBottom: theme.spacing(3),
   },
   cardHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing(2) },
-  kindPill: { backgroundColor: theme.colors.accentSoft, borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing(2.5), paddingVertical: 3 },
-  kindPillText: { ...theme.font.caption, color: theme.colors.accent, fontWeight: '700', fontSize: 10, letterSpacing: 0.5 },
+  kindPill: { backgroundColor: colors.signalSoft, borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing(2.5), paddingVertical: 3 },
+  kindPillText: { ...theme.font.caption, color: colors.signal, fontWeight: '700', fontSize: 10, letterSpacing: 0.5 },
   date: { ...theme.font.caption, color: theme.colors.textFaint },
   cardTitle: { ...theme.font.body, color: theme.colors.text, fontWeight: '700', fontSize: 16, marginBottom: theme.spacing(1) },
   cardBody: { ...theme.font.caption, color: theme.colors.textDim, lineHeight: 18, marginBottom: theme.spacing(2) },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: theme.spacing(2) },
-  tag: { backgroundColor: theme.colors.bgElevated, borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing(2), paddingVertical: 2 },
+  tag: { backgroundColor: colors.holo, borderRadius: theme.radius.pill, paddingHorizontal: theme.spacing(2), paddingVertical: 2 },
   tagText: { ...theme.font.caption, color: theme.colors.textFaint, fontSize: 10 },
   promotedNote: { ...theme.font.caption, color: theme.colors.success, fontWeight: '700' },
   dismissedNote: { ...theme.font.caption, color: theme.colors.textFaint },

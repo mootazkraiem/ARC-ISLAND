@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { theme } from '../theme';
+import { theme, colors } from '../theme';
+import { WorldBackground } from '../components/world/WorldBackground';
+import { SystemGlyph } from '../components/SystemGlyph';
 import { useProgress } from '../progression/useProgress';
 import { CARD_DEFINITIONS } from '../progression/cardDefinitions';
 import { CardDefinition, CardKind } from '../progression/types';
@@ -42,13 +44,15 @@ export function CollectionScreen({ onBack }: { onBack: () => void }) {
   );
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <Pressable onPress={onBack} hitSlop={12}>
-          <Text style={styles.backText}>‹ Back</Text>
+    <View style={styles.root}>
+      <WorldBackground intensity={0.8} />
+      <View style={styles.container}>
+        <View style={styles.header}>
+        <Pressable onPress={onBack} hitSlop={12} style={styles.backBtn}>
+          <SystemGlyph name="back" size={17} color={colors.textDim} />
         </Pressable>
-        <Text style={styles.eyebrow}>ARCHIVE</Text>
-      </View>
+          <Text style={styles.eyebrow}>ARCHIVE</Text>
+        </View>
 
       <Text style={styles.title}>Collection</Text>
       <Text style={styles.count}>
@@ -97,30 +101,42 @@ export function CollectionScreen({ onBack }: { onBack: () => void }) {
         unlockedAt={selected ? progress.unlockedCards[selected.id] : undefined}
         onClose={() => setSelected(null)}
       />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.bg, paddingHorizontal: theme.spacing(5) },
+  root: { flex: 1, backgroundColor: colors.void },
+  container: { flex: 1, backgroundColor: 'transparent', paddingHorizontal: theme.spacing(4) },
+  backBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.holo,
+    borderWidth: 1,
+    borderColor: colors.holoBorder,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingTop: theme.spacing(4),
   },
-  backText: { color: theme.colors.accent, fontSize: 16, fontWeight: '600' },
+  backText: { color: colors.signal, fontSize: 16, fontWeight: '600' },
   eyebrow: { ...theme.font.label, color: theme.colors.textFaint, letterSpacing: 1.5 },
   title: { ...theme.font.title, color: theme.colors.text, marginTop: theme.spacing(3) },
-  count: { ...theme.font.caption, color: theme.colors.accent, letterSpacing: 1, fontWeight: '700', marginTop: 4, marginBottom: theme.spacing(4) },
+  count: { ...theme.font.caption, color: colors.signal, letterSpacing: 1, fontWeight: '700', marginTop: 4, marginBottom: theme.spacing(4) },
   filterList: { flexGrow: 0, marginBottom: theme.spacing(3) },
   filterChip: {
     paddingHorizontal: theme.spacing(3),
     paddingVertical: theme.spacing(1.5),
     borderRadius: theme.radius.pill,
-    backgroundColor: theme.colors.bgElevated,
+    backgroundColor: colors.holo,
   },
-  filterChipActive: { backgroundColor: theme.colors.accent },
+  filterChipActive: { backgroundColor: colors.signal },
   filterChipText: { ...theme.font.caption, color: theme.colors.textDim, fontWeight: '700', letterSpacing: 0.5 },
   filterChipTextActive: { color: '#FFFFFF' },
   grid: { paddingBottom: theme.spacing(10) },
