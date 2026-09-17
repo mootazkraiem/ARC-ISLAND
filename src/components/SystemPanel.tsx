@@ -32,13 +32,14 @@ import { colors, radii } from '../theme';
 // a state, not decoration, and defaults off.
 // ─────────────────────────────────────────────────────────────────────────
 
-export type PanelTone = 'default' | 'signal' | 'done' | 'due' | 'danger' | 'cyan';
+export type PanelTone = 'default' | 'signal' | 'done' | 'due' | 'xp' | 'danger' | 'cyan';
 
 const TONE: Record<PanelTone, string> = {
   default: colors.holoBorder,
   signal: colors.signal,
   done: colors.done,
   due: colors.due,
+  xp: colors.xp,
   danger: colors.danger,
   cyan: colors.arcCyan,
 };
