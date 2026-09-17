@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, font, radii, spacing, category as categoryTokens } from '../theme';
 import { Reminder } from '../types';
 import {
@@ -64,7 +64,7 @@ export function MonthGrid({ reminders, anchor, completedDates, onPickDay, select
         ))}
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
+      <View style={styles.body}>
         {weeks.map((week, wi) => (
           <View key={wi} style={styles.weekRow}>
             {week.map((day) => {
@@ -146,7 +146,7 @@ export function MonthGrid({ reminders, anchor, completedDates, onPickDay, select
             })}
           </View>
         ))}
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -162,11 +162,13 @@ const styles = StyleSheet.create({
     color: colors.textFainter,
     textAlign: 'center',
   },
-  scrollBody: { paddingBottom: spacing(6), gap: spacing(1.5) },
-  weekRow: { flexDirection: 'row', gap: spacing(1.5) },
+  body: { flex: 1, gap: spacing(1.5), paddingBottom: spacing(1) },
+  weekRow: { flex: 1, flexDirection: 'row', gap: spacing(1.5) },
   cell: {
     flex: 1,
-    aspectRatio: 0.82,
+    // No aspectRatio: the row owns the height (weekRow is flex:1), so a
+    // 5-week month fills the panel exactly as a 6-week one does instead of
+    // leaving a dead band underneath.
     borderRadius: radii.sm,
     borderWidth: 1,
     borderColor: 'rgba(124,158,255,0.10)',

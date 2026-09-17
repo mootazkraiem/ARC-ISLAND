@@ -179,10 +179,13 @@ function renderGlyph(name: GlyphName, c: Common, color: string, charged: boolean
     case 'streak':
       return (
         <>
-          <Path d="M4.4 12 A 3.3 3.3 0 0 1 11 12 A 3.3 3.3 0 0 0 17.6 12" {...c} strokeWidth={s + 0.2} />
-          <Path d="M7.7 12 A 3.3 3.3 0 0 0 7.7 11.9" {...c} />
-          <Circle cx="20.1" cy="12" r="1.5" {...c} fill={charged ? color : 'none'} />
-          <Circle cx="3.9" cy="12" r="1.1" fill={color} stroke="none" opacity={0.5} />
+          {/* Four links of a chain of days, each one taller than the last —
+              consistency that compounds. The final link is sealed shut. */}
+          <Path d="M3.8 16.2 L3.8 18.8" {...c} strokeWidth={s + 0.6} strokeOpacity={0.4} />
+          <Path d="M8.6 13.4 L8.6 18.8" {...c} strokeWidth={s + 0.6} strokeOpacity={0.6} />
+          <Path d="M13.4 9.8 L13.4 18.8" {...c} strokeWidth={s + 0.6} strokeOpacity={0.8} />
+          <Path d="M18.2 5.6 L18.2 18.8" {...c} strokeWidth={s + 0.6} />
+          <Circle cx="18.2" cy="4" r="1.6" {...c} fill={charged ? color : 'none'} strokeWidth={s} />
         </>
       );
 
@@ -343,12 +346,13 @@ function renderGlyph(name: GlyphName, c: Common, color: string, charged: boolean
     case 'forge':
       return (
         <>
-          <Path d="M3.6 16.4 A 9.4 9.4 0 0 1 20.4 16.4" {...c} />
-          <Path d="M12 3 L12 8.4" {...c} strokeOpacity={0.75} />
-          <Path d="M6.6 5.9 L9.3 9.6" {...c} strokeOpacity={0.5} />
-          <Path d="M17.4 5.9 L14.7 9.6" {...c} strokeOpacity={0.5} />
-          <Path d="M12 19.2 L12 21.4" {...c} strokeOpacity={0.9} />
-          <Circle cx="12" cy="12.6" r="2.1" {...c} fill={charged ? color : 'none'} fillOpacity={0.55} />
+          {/* A week being struck into shape: the arc is the raw span, the
+              vector drives down into it, and the point of impact ignites. */}
+          <Path d="M3.2 17.6 A 10 10 0 0 1 20.8 17.6" {...c} strokeWidth={s + 0.4} />
+          <Path d="M12 2.6 L12 10.4" {...c} strokeWidth={s + 0.4} />
+          <Path d="M8.7 7.4 L12 10.7 L15.3 7.4" {...c} strokeOpacity={0.55} />
+          <Circle cx="12" cy="13.8" r="2.4" {...c} fill={charged ? color : 'none'} fillOpacity={0.8} />
+          <Path d="M12 20.2 L12 21.8" {...c} strokeOpacity={0.5} />
         </>
       );
 

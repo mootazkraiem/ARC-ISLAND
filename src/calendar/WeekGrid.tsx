@@ -154,7 +154,7 @@ export function WeekGrid({
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={{ height: totalHeight }}
+        contentContainerStyle={{ height: totalHeight + 10, paddingTop: 8 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Hour rules + gutter labels. Drawn once behind everything. */}
@@ -568,7 +568,9 @@ const styles = StyleSheet.create({
     color: colors.textFainter,
     textAlign: 'right',
     paddingRight: 6,
-    marginTop: -5,
+    // Pulled up to sit ON the hour rule, but not so far that the first
+    // label (12A) clips against the top of the scroll container.
+    marginTop: -4,
   },
   hourLabelNight: { color: 'rgba(122,122,146,0.45)' },
   hourLine: { flex: 1, height: 1, backgroundColor: 'rgba(124,158,255,0.09)' },
