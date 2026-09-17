@@ -95,9 +95,10 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
           <Text style={styles.costTitle}>Roughly what this costs</Text>
           <Text style={styles.costBody}>
             Replies use OpenRouter's free model router by default — $0, capped at 50 requests/day
-            (1000/day if you ever add $10 of OpenRouter credit). Voice transcription isn't free on
-            OpenRouter yet, but it's billed the same small per-minute rate Whisper always was, on
-            this same key — a typical "add a reminder" exchange still costs well under a cent.
+            (1000/day if you ever add $10 of OpenRouter credit).
+            {Platform.OS === 'web'
+              ? " Voice on the web uses your browser's own built-in speech recognition, not this key — it's always $0 and never sends audio anywhere."
+              : " Voice transcription isn't free on OpenRouter yet — it's billed a small per-minute Whisper rate on this same key. A typical \"add a reminder\" exchange still costs well under a cent."}
           </Text>
         </View>
       </ScrollView>

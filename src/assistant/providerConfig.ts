@@ -21,11 +21,14 @@ export const PROVIDER_CONFIG = {
   chatModel: 'openrouter/free',
 
   /**
-   * OpenRouter doesn't currently have a free speech-to-text model, so
-   * voice transcription is billed a small per-minute amount on the same
-   * OpenRouter key (still no separate OpenAI account/key needed). Swap
-   * this for another transcription model id OpenRouter offers if you'd
-   * prefer a different one.
+   * Native (iOS/Android) ONLY — the web build never calls this model at
+   * all (see src/webSpeechRecognition.ts and the hard guard in
+   * src/assistant/providers/openrouter.ts's transcribeAudio()). OpenRouter
+   * doesn't currently have a free speech-to-text model, so voice
+   * transcription on native is billed a small per-minute amount on the
+   * same OpenRouter key (still no separate OpenAI account/key needed).
+   * Swap this for another transcription model id OpenRouter offers if
+   * you'd prefer a different one.
    */
   transcribeModel: 'openai/whisper-1',
 

@@ -4,6 +4,8 @@ import { Alert, Platform, StatusBar, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Notifications from 'expo-notifications';
 import { Reminder, ReminderDraft } from './src/types';
+import { safeAlert } from './src/alert';
+import { startWebReminderAlerts, stopWebReminderAlerts } from './src/webReminderAlerts';
 import { theme } from './src/theme';
 import { loadReminders, saveReminders } from './src/storage';
 import {
@@ -57,7 +59,7 @@ export default function App() {
       await initNotifications();
       const granted = await requestNotificationPermissions();
       if (!granted) {
-        Alert.alert(
+        safeAlert(
           'Notifications disabled',
           'Enable notifications in Settings so reminders can alert you.'
         );
@@ -75,9 +77,27 @@ export default function App() {
     saveReminders(reminders);
   }, [reminders, ready]);
 
+  // Web has no OS-level scheduled notifications at all (see
+  // src/notifications.ts) — this starts the real substitute: a foreground
+  // poll that fires an actual desktop notification + the alarm sound while
+  // this tab/window stays open. No-ops immediately on native. Starts once
+  // reminders have finished their initial load so it isn't checking against
+  // an empty array; always reads the latest reminders via remindersRef.
+  useEffect(() => {
+    if (!ready || Platform.OS !== 'web') return;
+    startWebReminderAlerts(() => remindersRef.current);
+    return () => stopWebReminderAlerts();
+  }, [ready]);
+
   // Handle notification action buttons (Done / Snooze) — fires even if the
   // app was backgrounded or killed and gets relaunched by the tap.
+  // expo-notifications has no web implementation (see src/notifications.ts),
+  // and reminders never schedule a real OS notification on web (they no-op
+  // there), so there's nothing for this listener to ever receive on web —
+  // skipping registration entirely is the safe choice rather than relying
+  // on an unsupported-platform call being a harmless no-op.
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationResponseReceivedListener(async (response) => {
       const reminderId = response.notification.request.content.data?.reminderId as
         | string

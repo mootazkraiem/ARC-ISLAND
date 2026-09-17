@@ -11,6 +11,8 @@ import {
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { safeHaptics } from '../haptics';
+import { safeAlert } from '../alert';
 import { Category, Reminder } from '../types';
 import { theme } from '../theme';
 import { EmptyState } from '../components/EmptyState';
@@ -76,13 +78,13 @@ export function HomeScreen({
   const submitQuickAdd = () => {
     const trimmed = quickText.trim();
     if (!trimmed) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    safeHaptics.impact(Haptics.ImpactFeedbackStyle.Light);
     onQuickAdd(parseQuickAdd(trimmed));
     setQuickText('');
   };
 
   const handleToggle = (id: string, enabled: boolean) => {
-    Haptics.selectionAsync();
+    safeHaptics.selection();
     onToggle(id, enabled);
   };
 
@@ -90,11 +92,11 @@ export function HomeScreen({
     const result = await onComplete(id);
     if (!result) return;
     if (result.alreadyCompletedToday) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-      Alert.alert('Already counted', "This one already earned its XP for today — it'll count again tomorrow.");
+      safeHaptics.notification(Haptics.NotificationFeedbackType.Warning);
+      safeAlert('Already counted', "This one already earned its XP for today — it'll count again tomorrow.");
       return;
     }
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    safeHaptics.notification(Haptics.NotificationFeedbackType.Success);
   };
 
   return (
@@ -141,7 +143,11 @@ export function HomeScreen({
           <TextInput
             value={quickText}
             onChangeText={setQuickText}
-            placeholder='Try "call mom tomorrow 6pm" — tap 🎤 on your keyboard to dictate'
+            placeholder={
+              Platform.OS === 'web'
+                ? 'Try "call mom tomorrow 6pm" — or tap 🎙️ above to talk to Nudge'
+                : 'Try "call mom tomorrow 6pm" — tap 🎤 on your keyboard to dictate'
+            }
             placeholderTextColor={theme.colors.textFaint}
             style={styles.quickAddInput}
             returnKeyType="done"

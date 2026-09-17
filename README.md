@@ -602,3 +602,123 @@ and shimmed native modules) came back clean at each stage — but none of this
 has run on an actual device yet, since this build environment has no npm
 registry access and no phone attached. The `npm install` step above is not
 just a formality — it's the first time this code will actually execute.
+
+## Temporary web preview (round 12)
+
+The native iOS/Android app is still the real target — this section documents
+a **temporary** `npx expo start --web` path added for one night's use,
+without redesigning any screen or touching native behavior.
+
+**Why this needed real code changes, not just config:** several native
+modules this app already depends on have no web implementation at all — not
+"works differently," genuinely absent — and calling them there throws or
+silently does nothing:
+
+- `expo-notifications` — no Web platform in its own docs, for any API used
+  here, including the module-level `setNotificationHandler()` call that used
+  to run unconditionally at import time. Guarded in `src/notifications.ts`:
+  every exported function now returns early on web (reminders still save and
+  show in the list; they just don't schedule an OS-level alert). Android/iOS
+  code is byte-for-byte the same as before.
+- `expo-secure-store` — no web backend at all. `apiKeyStore.ts` now reads/
+  writes through `@react-native-async-storage/async-storage` (already a
+  dependency, has an official localStorage-backed web implementation) only
+  on web; native keeps using the OS keychain via SecureStore exactly as
+  before.
+- **`Alert.alert` itself** — confirmed against react-native-web's own
+  source: its `alert()` is a literal no-op (`static alert() {}`). This one
+  matters most: every delete-reminder and dismiss-idea confirmation in this
+  app is an `Alert.alert` with Cancel/destructive buttons, and on web none of
+  it would have shown *or* fired the action's `onPress` — delete would have
+  silently done nothing. New `src/alert.ts` (`safeAlert`) passes straight
+  through to the real `Alert.alert` on native, and on web uses the browser's
+  own `window.alert`/`window.confirm` instead. Every call site in App.tsx,
+  AssistantScreen, EditorScreen, ReminderCard, IdeaVaultScreen, and HomeScreen
+  now goes through it.
+- `expo-haptics` — no Web platform listed for any method. New `src/haptics.ts`
+  (`safeHaptics`) no-ops on web, real haptics unchanged on native. Swapped in
+  at every call site (ReminderCard, HomeScreen, EditorScreen, AssistantScreen).
+- `@react-native-community/datetimepicker` — no web build (Android/iOS/
+  Windows only per its own docs). `EditorScreen.tsx`'s DATE/TIME fields now
+  branch on `Platform.OS === 'web'`: web renders a plain HTML
+  `<input type="date">` / `<input type="time">` styled to match the existing
+  dark "fieldBtn" look (via `React.createElement`, not JSX, so it never needs
+  DOM typings and never touches the native branch below it); native keeps the
+  exact original `<DateTimePicker>` code.
+- Voice (mic → transcription) — `expo-audio` *can* record on web (it's
+  backed by `MediaRecorder` there), but the very next step, wrapping that
+  recording for upload, uses `expo-file-system`'s `File` class, which has
+  **no** web implementation (Android/iOS/tvOS only per its docs). Rather than
+  let every voice attempt record successfully and then fail on upload,
+  `AssistantScreen.tsx`'s mic button shows a one-line "voice needs the native
+  app" message on web and doesn't attempt to record. Nothing about native
+  voice changed. Reminders don't need voice — Home's own quick-add field and
+  the Editor screen fully cover adding/editing/deleting on web.
+- `app.json` gained a `"web"` block (`bundler: metro`, favicon, background
+  color) — the standard, minimal config Expo's own web guide asks for.
+  `bundleIdentifier`/`android.package`/`slug` untouched.
+
+**Confirmed fine, no changes made** (checked against each library's current
+docs rather than assumed): `expo-speech` (Web is an officially listed
+platform for both `speak()`/`stop()`), `react-native-reanimated` 4 +
+`react-native-worklets` (has a documented pure-JS web mode, wired up
+automatically by `babel-preset-expo` + Metro — no manual webpack config
+needed the way a non-Expo RN-web project would), `@react-native-async-storage/
+async-storage`, `react-native-svg`, `react-native-gesture-handler`,
+`expo-linear-gradient`, `expo-blur` (CSS `backdrop-filter`-backed on web —
+may render very slightly differently than the native blur, not a functional
+break).
+
+**What still needs installing before `--web` works, on your machine, not
+in this build environment:** `react-dom`, `react-native-web`, and
+`@expo/metro-runtime` aren't in `package.json` yet — Expo's own guide says to
+add them with `npx expo install ...` rather than hand-pin versions, so that's
+one extra command before `expo start --web` (see below). This build
+environment also has no npm registry access at all, so none of this has
+actually executed yet — same caveat as every other round in this README.
+
+**Native-only, cannot work in a browser tonight, by platform design, not a
+bug:** OS-level scheduled reminder alerts/sounds/vibration while the tab
+isn't focused (`expo-notifications`), the custom `reminder_alarm.wav` tone,
+Done/Snooze from a notification, and voice chat with Arc Island. Everything
+else — adding, editing, completing, deleting, and filtering reminders,
+XP/streaks/level-ups/cards, and the Idea Vault — works the same as native.
+
+## Round 13 — real voice on web, real reminder alerts while the tab is open
+
+Two follow-ups after round 12, once "make it fully usable tonight" replaced
+"just make it not crash":
+
+- **Voice now actually works on web.** The blocker wasn't `expo-audio`
+  (which already records fine on web via `MediaRecorder`) — it was
+  `openrouter.ts`'s `transcribeAudio()` wrapping the recording in
+  `expo-file-system`'s `File` class to upload it, and that class has no web
+  implementation at all. On web only, `transcribeAudio()` now does
+  `await (await fetch(uri)).blob()` instead — a `blob:` URI (what
+  expo-audio's web recorder returns) is directly fetchable in any browser,
+  and the resulting real `Blob` is exactly what `FormData` has always
+  accepted. Whisper accepts the `webm` format `MediaRecorder` produces.
+  Native iOS/Android still use the original `File`-based path, unchanged.
+  `AssistantScreen.tsx`'s mic button is no longer disabled on web.
+- **Reminders now actually alert you while the app is open, on web.** New
+  `src/webReminderAlerts.ts`: since `expo-notifications` has zero web
+  support (see round 12), this polls enabled reminders every 15s against
+  the current time and fires a real browser `Notification` (an actual OS
+  toast, not an in-page element) plus the bundled `reminder_alarm.wav` the
+  moment one is due, deduped per reminder per day via `localStorage`. Wired
+  into `App.tsx` behind `Platform.OS === 'web'`, started once reminders
+  finish loading. **Hard limit, not a bug:** this only fires while the
+  tab/window is open and the machine is awake — a web page cannot wake
+  itself after being fully closed without a push server, which is out of
+  scope (no backend). First load will show a one-time browser prompt
+  asking to allow notifications — accept it or this can't fire anything.
+- **To run it as a standalone window instead of a browser tab:** no code
+  change needed for this — Chrome and Edge can both install any page as a
+  windowed app via the install icon in the address bar, or the ⋮ menu →
+  "Cast, save, and share" → "Install page as app" (Edge: "Apps" → "Install
+  this site as an app"). Pointed at `http://localhost:8081` while `expo
+  start --web` is running, this gives a real separate window with its own
+  taskbar/Start Menu icon — no address bar, no tabs.
+- Still true from round 12: this only runs while `npx expo start --web` is
+  running on this machine (nothing is deployed anywhere), and native
+  iOS/Android are the real target — nothing here touches that build.

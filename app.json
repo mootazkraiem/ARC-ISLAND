@@ -32,6 +32,11 @@
         "RECORD_AUDIO"
       ]
     },
+    "web": {
+      "bundler": "metro",
+      "favicon": "./assets/icon.png",
+      "backgroundColor": "#040407"
+    },
     "plugins": [
       [
         "expo-notifications",

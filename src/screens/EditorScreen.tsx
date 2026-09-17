@@ -11,11 +11,38 @@ import {
   View,
 } from 'react-native';
 import * as Haptics from 'expo-haptics';
+import { safeHaptics } from '../haptics';
+import { safeAlert } from '../alert';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Reminder, ReminderDraft } from '../types';
 import { theme } from '../theme';
 import { RepeatSelector } from '../components/RepeatSelector';
 import { CategorySelector } from '../components/CategorySelector';
+
+// @react-native-community/datetimepicker ships no web implementation at all
+// (its own docs list Android/iOS/Windows only) — importing it is still safe
+// on web (it resolves, it just can't render its native picker UI), but
+// mounting <DateTimePicker> there would throw at render time. On web only,
+// the two fields below render a plain HTML date/time input instead — same
+// dark "fieldBtn" card look, same dateISO/time state, same onSave/validation
+// logic. Native iOS/Android keep the exact existing DateTimePicker code,
+// untouched, below.
+const isWeb = Platform.OS === 'web';
+// A plain DOM style object (not an RN StyleSheet) since this only ever
+// renders inside the `isWeb` branch. `colorScheme: 'dark'` makes Chrome/Edge
+// draw the native date/time picker popup in dark mode, matching the app's
+// `themeVariant="dark"` on the native picker.
+const webDateTimeInputStyle: any = {
+  backgroundColor: 'transparent',
+  border: 'none',
+  outline: 'none',
+  color: theme.colors.text,
+  fontSize: 16,
+  fontWeight: '600',
+  fontFamily: theme.fontFamily.manropeMedium,
+  width: '100%',
+  colorScheme: 'dark',
+};
 
 interface Props {
   initial: Reminder | null;
@@ -92,19 +119,19 @@ export function EditorScreen({ initial, prefill, onSave, onCancel, onDelete }: P
       setError('Pick a time in the future.');
       return;
     }
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    safeHaptics.notification(Haptics.NotificationFeedbackType.Success);
     onSave({ title: trimmed, date: dateISO, time, repeat, category, enabled });
   };
 
   const confirmDelete = () => {
     if (!initial) return;
-    Alert.alert('Delete this reminder?', `"${initial.title}" will be removed and its notification cancelled.`, [
+    safeAlert('Delete this reminder?', `"${initial.title}" will be removed and its notification cancelled.`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
         onPress: () => {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+          safeHaptics.notification(Haptics.NotificationFeedbackType.Warning);
           onDelete(initial.id);
         },
       },
@@ -146,41 +173,68 @@ export function EditorScreen({ initial, prefill, onSave, onCancel, onDelete }: P
         />
 
         <Text style={styles.label}>DATE</Text>
-        <Pressable style={styles.fieldBtn} onPress={() => setShowDatePicker(true)}>
-          <Text style={styles.fieldBtnText}>
-            {combined.toLocaleDateString(undefined, {
-              weekday: 'short',
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
+        {isWeb ? (
+          <View style={styles.fieldBtn}>
+            {React.createElement('input', {
+              type: 'date',
+              value: dateISO,
+              min: toISODate(new Date()),
+              onChange: (e: any) => setDateISO(e.target.value),
+              style: webDateTimeInputStyle,
             })}
-          </Text>
-        </Pressable>
-        {showDatePicker && (
-          <DateTimePicker
-            value={combined}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'inline' : 'default'}
-            onChange={handleDateChange}
-            minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
-            themeVariant="dark"
-          />
+          </View>
+        ) : (
+          <>
+            <Pressable style={styles.fieldBtn} onPress={() => setShowDatePicker(true)}>
+              <Text style={styles.fieldBtnText}>
+                {combined.toLocaleDateString(undefined, {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })}
+              </Text>
+            </Pressable>
+            {showDatePicker && (
+              <DateTimePicker
+                value={combined}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                onChange={handleDateChange}
+                minimumDate={new Date(new Date().setHours(0, 0, 0, 0))}
+                themeVariant="dark"
+              />
+            )}
+          </>
         )}
 
         <Text style={styles.label}>TIME</Text>
-        <Pressable style={styles.fieldBtn} onPress={() => setShowTimePicker(true)}>
-          <Text style={styles.fieldBtnText}>
-            {combined.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
-          </Text>
-        </Pressable>
-        {showTimePicker && (
-          <DateTimePicker
-            value={combined}
-            mode="time"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            onChange={handleTimeChange}
-            themeVariant="dark"
-          />
+        {isWeb ? (
+          <View style={styles.fieldBtn}>
+            {React.createElement('input', {
+              type: 'time',
+              value: time,
+              onChange: (e: any) => e.target.value && setTime(e.target.value),
+              style: webDateTimeInputStyle,
+            })}
+          </View>
+        ) : (
+          <>
+            <Pressable style={styles.fieldBtn} onPress={() => setShowTimePicker(true)}>
+              <Text style={styles.fieldBtnText}>
+                {combined.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
+              </Text>
+            </Pressable>
+            {showTimePicker && (
+              <DateTimePicker
+                value={combined}
+                mode="time"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={handleTimeChange}
+                themeVariant="dark"
+              />
+            )}
+          </>
         )}
 
         <Text style={styles.label}>REPEAT</Text>

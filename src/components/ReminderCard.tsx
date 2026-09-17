@@ -2,6 +2,8 @@ import React, { useRef } from 'react';
 import { Alert, Animated, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
+import { safeHaptics } from '../haptics';
+import { safeAlert } from '../alert';
 import { Reminder } from '../types';
 import { category as categoryTokens, colors, font, radii, spacing } from '../theme';
 import { formatRelativeDay, formatTime, getNextOccurrence, repeatLabel } from '../reminderLogic';
@@ -47,14 +49,14 @@ export function ReminderCard({ reminder, onToggle, onPress, onDelete, onComplete
         style={[styles.action, styles.deleteAction]}
         onPress={() => {
           swipeRef.current?.close();
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          Alert.alert('Delete this reminder?', `"${reminder.title}" will be removed and its notification cancelled.`, [
+          safeHaptics.impact(Haptics.ImpactFeedbackStyle.Medium);
+          safeAlert('Delete this reminder?', `"${reminder.title}" will be removed and its notification cancelled.`, [
             { text: 'Cancel', style: 'cancel' },
             {
               text: 'Delete',
               style: 'destructive',
               onPress: () => {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+                safeHaptics.notification(Haptics.NotificationFeedbackType.Warning);
                 onDelete(reminder.id);
               },
             },

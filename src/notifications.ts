@@ -25,17 +25,27 @@ const CHANNEL_ID = 'reminders-alarm';
 // to actually hear.
 const REMINDER_SOUND = 'reminder_alarm.wav';
 
-// Foreground presentation: still show a native-style banner + soft vibration
-// even while the app is open.
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// expo-notifications lists Android/iOS only for every API used in this file
+// — there is no Web row anywhere in its docs, including for
+// setNotificationHandler below, which runs at import time. Guarding it (and
+// every exported function) for web is what keeps `import './notifications'`
+// from throwing before the app even renders. This is a web-only early
+// return, not a reimplementation: the native Android/iOS behavior below —
+// channels, categories, triggers, sound — is untouched.
+if (Platform.OS !== 'web') {
+  // Foreground presentation: still show a native-style banner + soft vibration
+  // even while the app is open.
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 export async function initNotifications() {
+  if (Platform.OS === 'web') return;
   await Notifications.setNotificationCategoryAsync(CATEGORY_REMINDER, [
     {
       identifier: 'DONE',
@@ -69,6 +79,14 @@ export async function initNotifications() {
 }
 
 export async function requestNotificationPermissions(): Promise<boolean> {
+  // Scheduled/triggered local notifications aren't supported on web at all
+  // (see the file-level note above), so there is nothing meaningful to ask
+  // permission for here. Returning true (rather than false) specifically
+  // skips App.tsx's "Notifications disabled — enable them in Settings"
+  // alert, which would be a confusing, native-only instruction in a browser
+  // tab. Reminders still fully work as list items on web; they just won't
+  // pop an OS-level alert at their scheduled time.
+  if (Platform.OS === 'web') return true;
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return true;
   const requested = await Notifications.requestPermissionsAsync({
@@ -141,6 +159,11 @@ export async function cancelScheduledNotification(notificationId: string | null)
 export async function syncNotificationForReminder(
   reminder: Reminder
 ): Promise<string | null> {
+  // No-op on web — see the file-level note above. Returning null (the same
+  // value used for "disabled") keeps every caller's shape identical; the
+  // reminder itself still saves and shows normally in the list.
+  if (Platform.OS === 'web') return null;
+
   await cancelScheduledNotification(reminder.notificationId);
 
   if (!reminder.enabled) return null;
@@ -168,6 +191,7 @@ export async function syncNotificationForReminder(
 }
 
 export async function scheduleSnooze(reminder: Reminder, minutes = 10) {
+  if (Platform.OS === 'web') return;
   const fireDate = new Date(Date.now() + minutes * 60 * 1000);
   await Notifications.scheduleNotificationAsync({
     content: {

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { safeAlert } from '../alert';
 import { theme } from '../theme';
 import { useVault } from '../thoughts/useVault';
 import { Vault } from '../thoughts/vault';
@@ -44,7 +45,7 @@ export function IdeaVaultScreen({ onBack }: { onBack: () => void }) {
   const handleArchive = (idea: Idea) => Vault.setIdeaStatus(idea.id, 'archived');
 
   const handleDismiss = (idea: Idea) => {
-    Alert.alert('Dismiss this idea?', `"${idea.title}" will be marked dismissed. Nothing is erased — you can still find it under Dismissed.`, [
+    safeAlert('Dismiss this idea?', `"${idea.title}" will be marked dismissed. Nothing is erased — you can still find it under Dismissed.`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Dismiss', style: 'destructive', onPress: () => Vault.setIdeaStatus(idea.id, 'dismissed') },
     ]);

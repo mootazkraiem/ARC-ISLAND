@@ -27,15 +27,27 @@ on:
 
 jobs:
   build-unsigned-ipa:
-    runs-on: macos-14
+    runs-on: macos-26
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      # Pinned, not left on the runner's default: Expo SDK 57's
+      # expo-modules-jsi has two conflicting requirements — its own Swift
+      # Package needs Swift tools >= 6.2 to resolve, but its C++/Swift
+      # interop header breaks specifically on Swift 6.2.0–6.2.3 (Xcode
+      # 26.0–26.2). Swift 6.3 (Xcode 26.5+) satisfies both at once — see
+      # https://github.com/expo/expo/issues/50067 and the (closed, "fixed
+      # by a newer Xcode instead") PR https://github.com/expo/expo/pull/49740.
+      - name: Select Xcode 26.6 (Swift 6.3 — satisfies both expo-modules-jsi constraints)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: "26.6"
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install JS dependencies
         run: npm install
@@ -43,8 +55,15 @@ jobs:
       - name: Generate the native iOS project (expo prebuild)
         run: npx expo prebuild --platform ios --clean --no-install
 
-      - name: Install CocoaPods dependencies
+      # RCT_USE_PREBUILT_RNCORE=0: React Native 0.84+ defaults to pulling a
+      # precompiled ReactNativeDependencies.xcframework via a separate large
+      # Swift Package. Building from source instead avoids that package
+      # entirely, which kept an earlier build attempt from hitting a second,
+      # unrelated Swift-tools-version conflict on top of the one above.
+      - name: Install CocoaPods dependencies (build React Native from source)
         working-directory: ios
+        env:
+          RCT_USE_PREBUILT_RNCORE: "0"
         run: pod install
 
       - name: Find the generated workspace + scheme
@@ -70,7 +89,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
-            CODE_SIGN_ENTITLEMENTS=""
+            CODE_SIGN_ENTITLEMENTS="" \
+            ENABLE_USER_SCRIPT_SANDBOXING=NO
 
       - name: Package the .app into an unsigned .ipa
         working-directory: ios
