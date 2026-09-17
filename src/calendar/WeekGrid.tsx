@@ -73,6 +73,10 @@ export interface WeekGridProps {
   /** Proposed (not yet committed) blocks from Forge My Week, drawn as
    * outlined phantoms alongside the real schedule. */
   proposals?: QuestOccurrence[];
+  /** Minutes-from-midnight to bring into view. When omitted the grid opens
+   * near the current hour. Used to jump to a forged proposal so the user
+   * never sees an apparently empty grid under a "8 quests proposed" bar. */
+  scrollToMin?: number | null;
   gridWidth: number;
 }
 
@@ -86,6 +90,7 @@ export function WeekGrid({
   onCompleteQuest,
   onClaimAt,
   proposals = [],
+  scrollToMin = null,
   gridWidth,
 }: WeekGridProps) {
   const scrollRef = useRef<ScrollView>(null);
@@ -121,12 +126,19 @@ export function WeekGrid({
   }, [proposals]);
 
   // Open on the working day, not on midnight — landing at 00:00 every time
-  // makes the grid feel dead.
+  // makes the grid feel dead. When the caller names a target (a forged
+  // proposal), go there instead and animate, so the jump is legible.
   useEffect(() => {
-    const target = Math.max(0, (now.getHours() - 2) * HOUR_HEIGHT);
-    const t = setTimeout(() => scrollRef.current?.scrollTo({ y: target, animated: false }), 60);
+    const explicit = scrollToMin != null;
+    const target = explicit
+      ? Math.max(0, (scrollToMin as number) * PX_PER_MIN - HOUR_HEIGHT)
+      : Math.max(0, (now.getHours() - 2) * HOUR_HEIGHT);
+    const t = setTimeout(
+      () => scrollRef.current?.scrollTo({ y: target, animated: explicit }),
+      explicit ? 260 : 60
+    );
     return () => clearTimeout(t);
-  }, [columns]);
+  }, [columns, scrollToMin]);
 
   const totalHeight = (DAY_END_HOUR - DAY_START_HOUR) * HOUR_HEIGHT;
   const nowMin = now.getHours() * 60 + now.getMinutes();

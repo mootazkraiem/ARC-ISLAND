@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { safeHaptics } from '../haptics';
@@ -76,6 +76,22 @@ export function QuestCalendarScreen({
   });
 
   const proposalOccs = useMemo(() => proposalOccurrences(proposal), [proposal]);
+
+  // A forged week is useless if the user cannot see it. When a proposal
+  // arrives, jump the calendar to the week it covers and scroll the grid to
+  // its earliest block — otherwise the review bar announces "8 quests" over
+  // what looks like an empty grid, because the grid is still parked at the
+  // current hour.
+  const firstProposedMin = useMemo(() => {
+    if (proposalOccs.length === 0) return null;
+    return Math.min(...proposalOccs.map((o) => o.startMin));
+  }, [proposalOccs]);
+
+  useEffect(() => {
+    if (!proposal) return;
+    setMode('week');
+    setCursor(fromISODate(proposal.weekAnchor));
+  }, [proposal?.id]);
 
   // Content width available to the grid, minus the screen's own padding.
   const pad = spacing(4);
@@ -231,6 +247,7 @@ export function QuestCalendarScreen({
               onCompleteQuest={onCompleteQuest}
               onClaimAt={onClaimAt}
               proposals={proposalOccs}
+              scrollToMin={firstProposedMin}
               gridWidth={gridWidth}
             />
           )}
