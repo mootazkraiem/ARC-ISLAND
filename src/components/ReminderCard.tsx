@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Animated, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { safeHaptics } from '../haptics';
@@ -9,6 +9,7 @@ import { category as categoryTokens, colors, font, radii, spacing } from '../the
 import { formatRelativeDay, formatTime, getNextOccurrence, repeatLabel } from '../reminderLogic';
 import { computeBaseXp } from '../progression/xpRules';
 import { SystemGlyph } from './SystemGlyph';
+import { SystemToggle } from './SystemToggle';
 
 // ─────────────────────────────────────────────────────────────────────────
 // A single quest in the log.
@@ -144,13 +145,9 @@ export function ReminderCard({ reminder, onToggle, onPress, onDelete, onComplete
           <Text style={[styles.xpLabel, { color: completedToday ? colors.done : colors.xp }]}>
             {completedToday ? 'SEALED' : `+${xp}`}
           </Text>
-          <Switch
+          <SystemToggle
             value={reminder.enabled}
             onValueChange={(v) => onToggle(reminder.id, v)}
-            trackColor={{ false: colors.divider, true: colors.signal }}
-            thumbColor="#FFFFFF"
-            ios_backgroundColor={colors.divider}
-            style={styles.switch}
           />
         </View>
       </Pressable>
@@ -197,7 +194,6 @@ const styles = StyleSheet.create({
   textDim: { color: colors.textDim },
   trailing: { alignItems: 'flex-end', gap: spacing(1.5) },
   xpLabel: { fontFamily: font.numeral.fontFamily, fontWeight: '800' as const, fontSize: 11 },
-  switch: { transform: [{ scale: 0.74 }] },
   action: {
     justifyContent: 'center',
     alignItems: 'center',
