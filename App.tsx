@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Platform, StatusBar, StyleSheet, View } from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, StatusBar, StyleSheet, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import * as Notifications from 'expo-notifications';
 import { Reminder, ReminderDraft } from './src/types';
@@ -16,7 +16,8 @@ import {
 } from './src/notifications';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { EditorScreen } from './src/screens/EditorScreen';
-import { AssistantScreen } from './src/screens/AssistantScreen';
+import { SystemScreen, SystemMode } from './src/screens/SystemScreen';
+import { QuestCalendarScreen } from './src/screens/QuestCalendarScreen';
 import { SettingsScreen } from './src/screens/SettingsScreen';
 import { ProgressScreen } from './src/screens/ProgressScreen';
 import { CollectionScreen } from './src/screens/CollectionScreen';
@@ -29,6 +30,7 @@ import { Progression } from './src/progression/engine';
 import { CardUnlockInfo, CompletionResult, DailyLogEntry, LevelInfo } from './src/progression/types';
 import { Vault } from './src/thoughts/vault';
 import { useDesignSystemFonts } from './src/fonts';
+import { WeekProposal, blockToDraft, buildProposal } from './src/system/forge';
 
 function genId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -37,8 +39,9 @@ function genId(): string {
 type Screen =
   | { name: 'home' }
   | { name: 'editor'; reminder: Reminder | null; prefill?: ReminderDraft | null }
-  | { name: 'assistant' }
-  | { name: 'settings'; from: 'home' | 'assistant' }
+  | { name: 'system'; mode?: SystemMode }
+  | { name: 'calendar' }
+  | { name: 'settings'; from: 'home' | 'system' }
   | { name: 'progress' }
   | { name: 'collection' }
   | { name: 'ideaVault' };
@@ -51,6 +54,12 @@ export default function App() {
   const [unlockQueue, setUnlockQueue] = useState<CardUnlockInfo[]>([]);
   const [dayRecap, setDayRecap] = useState<DailyLogEntry | null>(null);
   const [levelUp, setLevelUp] = useState<LevelInfo | null>(null);
+  // A forged week awaiting the user's decision. Held here, at the top, so
+  // the System screen (which produces it) and the Quest Calendar (which
+  // renders and commits it) see the same one. Intentionally NOT persisted:
+  // an uncommitted proposal should not survive a reload and quietly reappear
+  // as if it were real schedule.
+  const [proposal, setProposal] = useState<WeekProposal | null>(null);
   const remindersRef = useRef<Reminder[]>([]);
   remindersRef.current = reminders;
 
@@ -60,8 +69,8 @@ export default function App() {
       const granted = await requestNotificationPermissions();
       if (!granted) {
         safeAlert(
-          'Notifications disabled',
-          'Enable notifications in Settings so reminders can alert you.'
+          'The System cannot summon you',
+          'Enable notifications so quests can alert you when their hour arrives.'
         );
       }
       const [stored] = await Promise.all([loadReminders(), Progression.init(), Vault.init()]);
@@ -80,22 +89,18 @@ export default function App() {
   // Web has no OS-level scheduled notifications at all (see
   // src/notifications.ts) — this starts the real substitute: a foreground
   // poll that fires an actual desktop notification + the alarm sound while
-  // this tab/window stays open. No-ops immediately on native. Starts once
-  // reminders have finished their initial load so it isn't checking against
-  // an empty array; always reads the latest reminders via remindersRef.
+  // this tab/window stays open. No-ops immediately on native.
   useEffect(() => {
     if (!ready || Platform.OS !== 'web') return;
     startWebReminderAlerts(() => remindersRef.current);
     return () => stopWebReminderAlerts();
   }, [ready]);
 
-  // Handle notification action buttons (Done / Snooze) — fires even if the
-  // app was backgrounded or killed and gets relaunched by the tap.
-  // expo-notifications has no web implementation (see src/notifications.ts),
-  // and reminders never schedule a real OS notification on web (they no-op
-  // there), so there's nothing for this listener to ever receive on web —
-  // skipping registration entirely is the safe choice rather than relying
-  // on an unsupported-platform call being a harmless no-op.
+  // Handle notification action buttons (Done / Snooze). expo-notifications
+  // has no web implementation, and quests never schedule a real OS
+  // notification on web, so there is nothing for this listener to receive
+  // there — skipping registration entirely is safer than relying on an
+  // unsupported-platform call being a harmless no-op.
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const sub = Notifications.addNotificationResponseReceivedListener(async (response) => {
@@ -112,7 +117,6 @@ export default function App() {
         await scheduleSnooze(current);
         return;
       }
-
       if (actionId === 'DONE') {
         await completeReminder(reminderId);
       }
@@ -158,19 +162,27 @@ export default function App() {
     setScreen({ name: 'home' });
   };
 
+  /** Drag/resize on the Quest Calendar lands here. It is deliberately the
+   * SAME applyReminderUpdate path as an editor save — moving a quest on the
+   * calendar re-syncs its alarm exactly as editing it by hand would, so the
+   * calendar can never drift out of step with what will actually fire. */
+  const handleReschedule = useCallback(
+    async (reminder: Reminder, next: { date: string; time: string; durationMin: number }) => {
+      await applyReminderUpdate({ ...reminder, ...next });
+    },
+    []
+  );
+
   // The single funnel every "I did this" moment goes through — swipe-done on
-  // Home, the Today's Path checklist, the notification's Done action, and
-  // Nudge's complete_reminder tool all call this same function. This is the
-  // ReminderCompleted → ProgressionEngine boundary from the architecture:
-  // the reminder engine only knows "disable if one-off"; everything about
-  // XP, skills, streaks, and card unlocks lives entirely in Progression and
-  // never leaks back into notification/storage logic.
+  // Home, the Quests of the Day checklist, the calendar block, the
+  // notification's Done action, and the System's complete_quest tool all
+  // call this same function.
   const completeReminder = async (id: string): Promise<CompletionResult | null> => {
-    const target = reminders.find((r) => r.id === id);
+    const target = remindersRef.current.find((r) => r.id === id);
     if (!target) return null;
 
-    // One-off reminders are done once fired; repeating ones stay scheduled
-    // — completing today doesn't cancel tomorrow's occurrence.
+    // One-off quests are done once fired; repeating ones stay scheduled —
+    // completing today doesn't cancel tomorrow's occurrence.
     if (target.repeat === 'once') {
       await applyReminderUpdate({ ...target, enabled: false });
     }
@@ -185,8 +197,6 @@ export default function App() {
     if (result.unlockedCards.length > 0) {
       setUnlockQueue((prev) => [...prev, ...result.unlockedCards]);
     }
-    // Level-up takes priority in the UI (it's the rarer, bigger moment) —
-    // the unlock toast queue still runs underneath/after it.
     if (result.leveledUp) {
       setLevelUp(result.newLevel);
     }
@@ -202,11 +212,11 @@ export default function App() {
     });
   };
 
-  // Used by the voice assistant to create a reminder directly (no editor
-  // confirmation step — the model already resolved date/time/category, and
-  // the spoken reply is the confirmation). Returns the new reminder's id so
-  // callers like promote_idea can link a project to its first task.
-  const handleAssistantCreate = async (draft: ReminderDraft): Promise<string> => {
+  // Used by the System to register a quest directly (no editor confirmation
+  // step — the model already resolved date/time/category, and the spoken
+  // reply is the confirmation). Returns the new id so promote_idea can link
+  // a project to its first quest.
+  const handleSystemCreate = async (draft: ReminderDraft): Promise<string> => {
     const id = genId();
     await applyReminderUpdate({
       id,
@@ -216,6 +226,28 @@ export default function App() {
     });
     return id;
   };
+
+  /** The System's propose_week tool lands here. This writes NOTHING to the
+   * reminder store — it only parks an inert proposal for the Quest Calendar
+   * to draw. Committing it is a separate, explicit user action below. */
+  const handleProposeWeek = useCallback((blocks: unknown, summary: string) => {
+    const { proposal: built, rejected } = buildProposal(blocks, summary, remindersRef.current);
+    setProposal(built);
+    return { count: built?.blocks.length ?? 0, rejected };
+  }, []);
+
+  /** ACCEPT — the only place a proposal becomes real. Each block goes
+   * through the same create path as any other quest, so notifications,
+   * storage and XP all behave identically. Existing quests are untouched:
+   * a forge can only ever add. */
+  const handleAcceptProposal = useCallback(async () => {
+    const current = proposal;
+    if (!current) return;
+    for (const block of current.blocks) {
+      await handleSystemCreate(blockToDraft(block));
+    }
+    setProposal(null);
+  }, [proposal]);
 
   if (!ready) {
     return <View style={styles.flexBg} />;
@@ -233,9 +265,11 @@ export default function App() {
           onDelete={handleDelete}
           onComplete={completeReminder}
           onQuickAdd={handleQuickAdd}
-          onOpenAssistant={() => setScreen({ name: 'assistant' })}
+          onOpenSystem={() => setScreen({ name: 'system' })}
           onOpenProgress={() => setScreen({ name: 'progress' })}
           onOpenIdeaVault={() => setScreen({ name: 'ideaVault' })}
+          onOpenCalendar={() => setScreen({ name: 'calendar' })}
+          hasProposal={!!proposal}
         />
       ) : screen.name === 'editor' ? (
         <EditorScreen
@@ -245,20 +279,44 @@ export default function App() {
           onCancel={() => setScreen({ name: 'home' })}
           onDelete={handleDelete}
         />
-      ) : screen.name === 'assistant' ? (
-        <AssistantScreen
+      ) : screen.name === 'system' ? (
+        <SystemScreen
           reminders={reminders}
-          onCreate={handleAssistantCreate}
+          onCreate={handleSystemCreate}
           onComplete={completeReminder}
           onDelete={handleDelete}
-          onOpenSettings={() => setScreen({ name: 'settings', from: 'assistant' })}
+          onProposeWeek={handleProposeWeek}
+          onOpenSettings={() => setScreen({ name: 'settings', from: 'system' })}
           onOpenIdeaVault={() => setScreen({ name: 'ideaVault' })}
+          onOpenCalendar={() => setScreen({ name: 'calendar' })}
           onBack={() => setScreen({ name: 'home' })}
+          initialMode={screen.mode}
+          activeProposal={proposal}
+        />
+      ) : screen.name === 'calendar' ? (
+        <QuestCalendarScreen
+          reminders={reminders}
+          onBack={() => setScreen({ name: 'home' })}
+          onOpenQuest={(r) => setScreen({ name: 'editor', reminder: r })}
+          onCompleteQuest={(id) => { completeReminder(id); }}
+          onReschedule={handleReschedule}
+          onClaimAt={(dateISO, time) =>
+            setScreen({
+              name: 'editor',
+              reminder: null,
+              prefill: { title: '', date: dateISO, time, repeat: 'once', category: 'personal', enabled: true },
+            })
+          }
+          onOpenSystem={() => setScreen({ name: 'system', mode: 'forge' })}
+          proposal={proposal}
+          onAcceptProposal={handleAcceptProposal}
+          onRejectProposal={() => setProposal(null)}
+          onReviseProposal={() => setScreen({ name: 'system', mode: 'forge' })}
         />
       ) : screen.name === 'settings' ? (
         <SettingsScreen
           onBack={() =>
-            screen.from === 'assistant' ? setScreen({ name: 'assistant' }) : setScreen({ name: 'home' })
+            screen.from === 'system' ? setScreen({ name: 'system' }) : setScreen({ name: 'home' })
           }
         />
       ) : screen.name === 'progress' ? (
