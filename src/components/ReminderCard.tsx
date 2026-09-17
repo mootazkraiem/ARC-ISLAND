@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Alert, Animated, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Switch, Text, View } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 import * as Haptics from 'expo-haptics';
 import { safeHaptics } from '../haptics';
@@ -8,6 +8,16 @@ import { Reminder } from '../types';
 import { category as categoryTokens, colors, font, radii, spacing } from '../theme';
 import { formatRelativeDay, formatTime, getNextOccurrence, repeatLabel } from '../reminderLogic';
 import { computeBaseXp } from '../progression/xpRules';
+import { SystemGlyph } from './SystemGlyph';
+
+// ─────────────────────────────────────────────────────────────────────────
+// A single quest in the log.
+//
+// The row is a holographic surface with a category spine down its left
+// edge, so a scrolled list reads as a colour rhythm rather than a stack of
+// grey rectangles. The seal control on the left is the quest-diamond glyph,
+// not a checkbox — completing a quest SEALS it, and the glyph charges.
+// ─────────────────────────────────────────────────────────────────────────
 
 interface Props {
   reminder: Reminder;
@@ -15,8 +25,7 @@ interface Props {
   onPress: (reminder: Reminder) => void;
   onDelete: (id: string) => void;
   onComplete: (id: string) => void;
-  /** Whether this reminder already earned its XP today — drives the
-   * checked/settled row treatment from the approved design. */
+  /** Whether this quest already earned its XP today. */
   completedToday?: boolean;
 }
 
@@ -26,6 +35,7 @@ export function ReminderCard({ reminder, onToggle, onPress, onDelete, onComplete
   const swipeRef = useRef<Swipeable>(null);
   const categoryMeta = categoryTokens[reminder.category] ?? categoryTokens.other;
   const xp = computeBaseXp(reminder.title, reminder.category).totalXp;
+  const overdue = !completedToday && reminder.enabled && next.getTime() < Date.now();
 
   const renderLeftActions = (progress: Animated.AnimatedInterpolation<number>) => {
     const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] });
@@ -37,7 +47,10 @@ export function ReminderCard({ reminder, onToggle, onPress, onDelete, onComplete
           onComplete(reminder.id);
         }}
       >
-        <Animated.Text style={[styles.actionText, { transform: [{ scale }] }]}>Done</Animated.Text>
+        <Animated.View style={{ transform: [{ scale }], alignItems: 'center', gap: 3 }}>
+          <SystemGlyph name="check" size={17} color={colors.void} strokeWidth={2.4} />
+          <Text style={styles.actionText}>SEAL</Text>
+        </Animated.View>
       </Pressable>
     );
   };
@@ -50,10 +63,10 @@ export function ReminderCard({ reminder, onToggle, onPress, onDelete, onComplete
         onPress={() => {
           swipeRef.current?.close();
           safeHaptics.impact(Haptics.ImpactFeedbackStyle.Medium);
-          safeAlert('Delete this reminder?', `"${reminder.title}" will be removed and its notification cancelled.`, [
-            { text: 'Cancel', style: 'cancel' },
+          safeAlert('Release this quest?', `"${reminder.title}" leaves the world and its summons is cancelled.`, [
+            { text: 'Keep', style: 'cancel' },
             {
-              text: 'Delete',
+              text: 'Release',
               style: 'destructive',
               onPress: () => {
                 safeHaptics.notification(Haptics.NotificationFeedbackType.Warning);
@@ -63,7 +76,10 @@ export function ReminderCard({ reminder, onToggle, onPress, onDelete, onComplete
           ]);
         }}
       >
-        <Animated.Text style={[styles.actionText, { transform: [{ scale }] }]}>Delete</Animated.Text>
+        <Animated.View style={{ transform: [{ scale }], alignItems: 'center', gap: 3 }}>
+          <SystemGlyph name="close" size={16} color="#FFFFFF" strokeWidth={2.2} />
+          <Text style={[styles.actionText, { color: '#FFFFFF' }]}>RELEASE</Text>
+        </Animated.View>
       </Pressable>
     );
   };
@@ -80,25 +96,29 @@ export function ReminderCard({ reminder, onToggle, onPress, onDelete, onComplete
         onPress={() => onPress(reminder)}
         style={({ pressed }) => [styles.card, dim && styles.cardDim, pressed && styles.cardPressed]}
       >
-        {/* Tap the checkbox to complete inline (matches the approved design's
-            row interaction); tap the rest of the row to edit — swipe still
-            does both too, this is purely an additional entry point. */}
+        {/* category spine */}
+        <View style={[styles.spine, { backgroundColor: dim ? colors.textFainter : categoryMeta.dot }]} />
+
+        {/* seal control — tap to complete inline */}
         <Pressable
           hitSlop={8}
           onPress={() => {
             if (!completedToday) onComplete(reminder.id);
           }}
-          style={[
-            styles.checkbox,
-            completedToday && { borderColor: colors.done, backgroundColor: colors.done, shadowColor: colors.done, shadowOpacity: 0.6, shadowRadius: 12, shadowOffset: { width: 0, height: 0 } },
-          ]}
+          style={styles.sealBtn}
         >
-          {completedToday && <View style={styles.checkmark} />}
+          <SystemGlyph
+            name={completedToday ? 'questComplete' : overdue ? 'questOverdue' : 'quest'}
+            size={23}
+            color={completedToday ? colors.done : overdue ? colors.due : colors.textFaint}
+            charged={completedToday}
+            strokeWidth={1.5}
+          />
         </Pressable>
 
         <View style={styles.timeBlock}>
           <Text style={[styles.time, dim && styles.textDim]}>{formatTime(reminder.time)}</Text>
-          <Text style={styles.day}>{formatRelativeDay(next)}</Text>
+          <Text style={[styles.day, overdue && { color: colors.due }]}>{formatRelativeDay(next)}</Text>
         </View>
 
         <View style={styles.body}>
@@ -106,20 +126,23 @@ export function ReminderCard({ reminder, onToggle, onPress, onDelete, onComplete
             {reminder.title}
           </Text>
           <View style={styles.tagRow}>
-            <View style={[styles.tag, dim && styles.tagDim]}>
-              <Text style={[styles.tagText, dim && styles.textFaint]}>
-                {repeatLabel(reminder.repeat)}
+            {reminder.repeat !== 'once' && (
+              <View style={styles.tag}>
+                <SystemGlyph name="repeat" size={9} color={colors.signal} strokeWidth={1.8} />
+                <Text style={styles.tagText}>{repeatLabel(reminder.repeat)}</Text>
+              </View>
+            )}
+            <View style={[styles.tag, { borderColor: `${categoryMeta.dot}44` }]}>
+              <Text style={[styles.tagText, { color: categoryMeta.dot }]}>
+                {categoryMeta.label.toUpperCase()}
               </Text>
-            </View>
-            <View style={[styles.tag, dim && styles.tagDim, { marginLeft: 6 }]}>
-              <Text style={[styles.tagText, dim && styles.textFaint]}>{categoryMeta.label}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.trailing}>
-          <Text style={[styles.xpLabel, { color: completedToday ? colors.done : categoryMeta.dot }]}>
-            {completedToday ? 'DONE' : `+${xp}`}
+          <Text style={[styles.xpLabel, { color: completedToday ? colors.done : colors.xp }]}>
+            {completedToday ? 'SEALED' : `+${xp}`}
           </Text>
           <Switch
             value={reminder.enabled}
@@ -139,65 +162,50 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.card,
+    backgroundColor: colors.holo,
     borderRadius: radii.lg,
     borderWidth: 1,
-    borderColor: colors.cardBorder,
-    paddingVertical: spacing(3.5),
-    paddingHorizontal: spacing(4),
-    marginBottom: spacing(2.5),
+    borderColor: colors.holoBorder,
+    paddingVertical: spacing(3),
+    paddingLeft: spacing(3.5),
+    paddingRight: spacing(3.5),
+    marginBottom: spacing(2),
     overflow: 'hidden',
   },
-  cardDim: { opacity: 0.55 },
-  cardPressed: { transform: [{ scale: 0.985 }], backgroundColor: colors.sheet },
-  checkbox: {
-    width: 26,
-    height: 26,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    borderColor: 'rgba(255,255,255,0.18)',
-    backgroundColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing(3),
-  },
-  checkmark: {
-    width: 11,
-    height: 6,
-    borderLeftWidth: 2,
-    borderBottomWidth: 2,
-    borderColor: colors.void,
-    transform: [{ rotate: '-45deg' }],
-    marginTop: -2,
-  },
-  timeBlock: { minWidth: 64, marginRight: spacing(2) },
-  time: { ...font.rowTitle, color: colors.textSecondary, fontSize: 14 },
-  day: { ...font.caption, color: colors.signal, marginTop: 2, fontSize: 10 },
+  cardDim: { opacity: 0.5 },
+  cardPressed: { transform: [{ scale: 0.99 }], backgroundColor: colors.holoRaise },
+  spine: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 3 },
+  sealBtn: { marginRight: spacing(2.5), alignItems: 'center', justifyContent: 'center' },
+  timeBlock: { minWidth: 62, marginRight: spacing(2) },
+  time: { ...font.rowTitle, color: colors.textSecondary, fontSize: 13.5 },
+  day: { ...font.caption, color: colors.arcCyan, marginTop: 1, fontSize: 9.5, fontWeight: '700' },
   body: { flex: 1, paddingRight: spacing(2) },
-  title: { ...font.rowTitle, color: colors.textSecondary, fontSize: 15.5 },
+  title: { ...font.rowTitle, color: colors.textSecondary, fontSize: 14.5 },
   titleDone: { textDecorationLine: 'line-through', color: colors.textFainter },
-  tagRow: { flexDirection: 'row', marginTop: spacing(1.5) },
+  tagRow: { flexDirection: 'row', marginTop: spacing(1.25), gap: spacing(1.5) },
   tag: {
-    backgroundColor: colors.signalSoft,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(124,92,255,0.28)',
     borderRadius: radii.pill,
-    paddingHorizontal: spacing(2.5),
-    paddingVertical: 3,
+    paddingHorizontal: spacing(2),
+    paddingVertical: 2,
   },
-  tagDim: { backgroundColor: colors.sheet },
-  tagText: { ...font.caption, color: colors.signal, fontSize: 10 },
+  tagText: { ...font.label, color: colors.signal, fontSize: 8, letterSpacing: 1 },
   textDim: { color: colors.textDim },
-  textFaint: { color: colors.textFaint },
-  trailing: { alignItems: 'flex-end', gap: spacing(2) },
-  xpLabel: { fontFamily: font.numeral.fontFamily, fontWeight: '800' as const, fontSize: 12 },
-  switch: { transform: [{ scale: 0.82 }] },
+  trailing: { alignItems: 'flex-end', gap: spacing(1.5) },
+  xpLabel: { fontFamily: font.numeral.fontFamily, fontWeight: '800' as const, fontSize: 11 },
+  switch: { transform: [{ scale: 0.74 }] },
   action: {
     justifyContent: 'center',
     alignItems: 'center',
-    width: 88,
-    marginBottom: spacing(2.5),
+    width: 84,
+    marginBottom: spacing(2),
     borderRadius: radii.lg,
   },
   completeAction: { backgroundColor: colors.done },
   deleteAction: { backgroundColor: colors.danger },
-  actionText: { color: '#07060F', fontWeight: '700', fontSize: 14 },
+  actionText: { ...font.label, color: colors.void, fontSize: 8.5, letterSpacing: 1.2 },
 });
