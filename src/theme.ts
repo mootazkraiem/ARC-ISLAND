@@ -33,6 +33,29 @@ export const colors = {
   danger: '#FF5C6C',
   dangerSoft: 'rgba(255, 92, 108, 0.14)',
 
+  // ── ARC ISLAND WORLD LAYER ───────────────────────────────────────────
+  // The world is not "black". It is deep space-over-ocean: an abyssal
+  // blue-violet that gets fractionally warmer and lighter toward the
+  // horizon, where the island formations sit. These are background-only
+  // tokens — never use them for text or for a surface that holds text.
+  worldDeep: '#03030A',      // zenith — the darkest point, top of the sky
+  worldMid: '#070A1C',       // upper atmosphere
+  worldHorizon: '#0D1430',   // the band the islands float in
+  worldGlow: '#1B2055',      // volumetric bloom behind the horizon
+  worldEmber: '#2A1D4D',     // violet warmth bleeding up from below
+  islandNear: '#0A0C1F',     // foreground silhouette mass
+  islandFar: '#0B1029',      // distant silhouette mass
+  arcCyan: '#5CE1FF',        // the secondary system hue — arcs, energy, scan
+  arcCyanSoft: 'rgba(92, 225, 255, 0.14)',
+  star: 'rgba(210, 226, 255, 0.85)',
+
+  // Holographic surfaces sit ON the world — they must stay translucent
+  // enough that the atmosphere shows through, opaque enough to read on.
+  holo: 'rgba(17, 20, 42, 0.62)',
+  holoRaise: 'rgba(28, 32, 62, 0.72)',
+  holoBorder: 'rgba(124, 158, 255, 0.18)',
+  holoBorderLit: 'rgba(124, 158, 255, 0.42)',
+
   // Ink, brightest to quietest.
   text: '#F4F4FB',
   textSecondary: '#EDEDF6',
