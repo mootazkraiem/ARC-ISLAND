@@ -21,6 +21,19 @@ export const PROVIDER_CONFIG = {
   chatModel: 'openrouter/free',
 
   /**
+   * Token ceiling for a chat turn. Deliberately generous: the free router
+   * frequently selects reasoning models that emit a long chain of thought
+   * before their answer, and a tight ceiling causes them to be cut off
+   * BEFORE the tool call — which looks exactly like "the assistant ignored
+   * me". See the TRUNCATION note in providers/openrouter.ts.
+   */
+  maxTokens: 1600,
+
+  /** Retry ceiling, used once when a response still comes back truncated
+   * without a tool call. Free models, so this costs nothing. */
+  maxTokensRetry: 3000,
+
+  /**
    * Native (iOS/Android) ONLY — the web build never calls this model at
    * all (see src/webSpeechRecognition.ts and the hard guard in
    * src/assistant/providers/openrouter.ts's transcribeAudio()). OpenRouter

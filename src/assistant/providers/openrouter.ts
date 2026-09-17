@@ -33,6 +33,52 @@ export class OpenRouterProvider implements AIProvider {
     tools: readonly unknown[],
     apiKey: string
   ): Promise<{ content: string | null; tool_calls?: ToolCall[] }> {
+    // One attempt, then one retry with a much larger budget if the model
+    // was cut off mid-thought. See the note on TRUNCATION below.
+    let result = await this.requestOnce(messages, tools, apiKey, PROVIDER_CONFIG.maxTokens);
+
+    if (result.truncated && !result.tool_calls?.length) {
+      result = await this.requestOnce(
+        messages,
+        tools,
+        apiKey,
+        PROVIDER_CONFIG.maxTokensRetry
+      );
+    }
+
+    return { content: result.content, tool_calls: result.tool_calls };
+  }
+
+  /**
+   * TRUNCATION — the reason max_tokens is as large as it is.
+   *
+   * `openrouter/free` is a router: it picks a different free model per
+   * request. Several of the models it now reaches (nvidia/nemotron-3-super,
+   * nex-agi/nex-n2.5-mini, and others) are REASONING models that emit a
+   * long chain of thought before their actual answer. With the old
+   * 300-token ceiling those models reliably spent the entire budget
+   * thinking, came back with finish_reason "length", and never emitted the
+   * tool call at all — so "I need to wake up at 7am" produced correct
+   * reasoning ("this is a QUEST, register it") and then created nothing.
+   *
+   * Two defences, because the router's model choice is not under our
+   * control and can change between any two requests:
+   *   1. `reasoning: { exclude: true }` asks OpenRouter to drop reasoning
+   *      tokens from the response on models that support the unified
+   *      reasoning parameter, which stops most of the budget being burned.
+   *   2. A budget large enough to survive the models that ignore (1),
+   *      plus a single automatic retry at a much larger ceiling when a
+   *      response still comes back truncated without a tool call.
+   *
+   * This costs nothing extra: these are free models, and the retry only
+   * fires on the failure path.
+   */
+  private async requestOnce(
+    messages: ChatMessage[],
+    tools: readonly unknown[],
+    apiKey: string,
+    maxTokens: number
+  ): Promise<{ content: string | null; tool_calls?: ToolCall[]; truncated: boolean }> {
     const res = await fetch(`${PROVIDER_CONFIG.apiBase}/chat/completions`, {
       method: 'POST',
       headers: {
@@ -45,14 +91,22 @@ export class OpenRouterProvider implements AIProvider {
         tools,
         tool_choice: 'auto',
         temperature: 0.4,
-        max_tokens: 300,
+        max_tokens: maxTokens,
+        // OpenRouter's unified reasoning control. Ignored by models that
+        // don't support it, so it is safe to always send.
+        reasoning: { exclude: true },
       }),
     });
 
     if (!res.ok) throw new AIProviderError(await parseErrorBody(res), res.status);
     const json = await res.json();
-    const message = json.choices?.[0]?.message ?? {};
-    return { content: message.content ?? null, tool_calls: message.tool_calls };
+    const choice = json.choices?.[0] ?? {};
+    const message = choice.message ?? {};
+    return {
+      content: message.content ?? null,
+      tool_calls: message.tool_calls,
+      truncated: choice.finish_reason === 'length',
+    };
   }
 
   /**
