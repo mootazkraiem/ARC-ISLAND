@@ -187,6 +187,48 @@ export const toolDefinitions = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'propose_week',
+      description:
+        "Forge a proposed week and draw it onto the user's Quest Calendar for review. This COMMITS NOTHING: the blocks are inert phantoms until the user explicitly accepts them, and no existing quest is ever moved or removed by this call. Call it exactly once per proposal, with the COMPLETE set of blocks — calling it again replaces the previous proposal rather than adding to it. Never use register_quest to build a multi-quest plan; that writes immediately and takes the decision away from the user.",
+      parameters: {
+        type: 'object',
+        properties: {
+          summary: {
+            type: 'string',
+            description:
+              'One or two sentences, in the System voice, explaining how the week is structured and what was protected. Shown above the proposal, e.g. "Built around your Thursday deadline, with Saturday evening left clear."',
+          },
+          blocks: {
+            type: 'array',
+            description: 'Every proposed quest block for the week.',
+            items: {
+              type: 'object',
+              properties: {
+                title: { type: 'string', description: 'Short quest name.' },
+                date: { type: 'string', description: 'ISO date, YYYY-MM-DD.' },
+                time: { type: 'string', description: '24-hour start time, HH:mm.' },
+                durationMin: {
+                  type: 'number',
+                  description: 'Block length in minutes. Deep work 90-120, meetings 30-60, errands 20-30.',
+                },
+                repeat: { type: 'string', enum: REPEAT_VALUES, description: 'Usually "once" inside a forged week.' },
+                category: { type: 'string', enum: CATEGORY_VALUES },
+                rationale: {
+                  type: 'string',
+                  description: 'A short clause on why it sits here, e.g. "before your Thursday deadline".',
+                },
+              },
+              required: ['title', 'date', 'time', 'durationMin', 'category'],
+            },
+          },
+        },
+        required: ['summary', 'blocks'],
+      },
+    },
+  },
 ] as const;
 
 export interface ToolContext {
@@ -194,6 +236,10 @@ export interface ToolContext {
   onCreate: (draft: ReminderDraft) => Promise<string>;
   onComplete: (id: string) => Promise<CompletionResult | null>;
   onDelete: (id: string) => Promise<void>;
+  /** Hands an inert week proposal to the UI for review. Deliberately NOT a
+   * write: it returns how many blocks were accepted into the proposal and
+   * how many were malformed and dropped, and changes no stored data. */
+  onProposeWeek?: (blocks: unknown, summary: string) => { count: number; rejected: number };
 }
 
 function findByQuery(reminders: Reminder[], query: string): Reminder | null {
@@ -379,6 +425,25 @@ export async function executeTool(
 
       await Vault.setIdeaStatus(idea.id, status, args.reviewInDays);
       return { ok: true, title: idea.title, newStatus: status };
+    }
+
+    case 'propose_week': {
+      if (!ctx.onProposeWeek) return { error: 'proposals_unavailable_here' };
+      const summary = String(args.summary ?? '').trim();
+      const { count, rejected } = ctx.onProposeWeek(args.blocks, summary);
+      if (count === 0) {
+        return {
+          error: 'no_valid_blocks',
+          note: 'Every block was missing a title, a YYYY-MM-DD date, or an HH:mm time.',
+        };
+      }
+      return {
+        ok: true,
+        proposed: count,
+        droppedMalformed: rejected,
+        committed: false,
+        note: 'Drawn on the Quest Calendar as a proposal. Nothing is scheduled until the user accepts.',
+      };
     }
 
     default:
