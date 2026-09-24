@@ -7,15 +7,16 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#040407",
     "icon": "./assets/icon.png",
-    "splash": {
-      "backgroundColor": "#040407"
-    },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.remind.mvp",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"],
+        "UIBackgroundModes": [
+          "remote-notification"
+        ],
         "NSMicrophoneUsageDescription": "Arc Island listens when you tap the mic so it can turn your voice into a reminder."
       }
     },
@@ -44,7 +45,9 @@
           "icon": "./assets/notification-icon.png",
           "color": "#7C5CFF",
           "mode": "production",
-          "sounds": ["./assets/sounds/reminder_alarm.wav"]
+          "sounds": [
+            "./assets/sounds/reminder_alarm.wav"
+          ]
         }
       ],
       [
