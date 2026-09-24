@@ -7,6 +7,116 @@ reminder, a task, an idea, or a project). Read this before adding a new
 skill, card, challenge, idea kind, or hooking something new into completion
 events.
 
+## The AI layer: Arc Island is a client of Angelo
+
+Added round 14. Arc Island's assistant ("the System") does not contain an
+AI. It calls **Angelo**, a separate local AI core running as its own process
+on the same machine, over loopback HTTP.
+
+### The boundary, and what each side owns
+
+| | Arc Island | Angelo |
+|---|---|---|
+| Quests, calendar, XP, streaks, cards, Idea Vault | **owns** | no access |
+| Every write to that data | **owns** | cannot perform one |
+| Validating a proposed change before committing it | **owns** | — |
+| UI, rendering, notifications | **owns** | — |
+| Conversation history with the model | — | **owns** |
+| Which LLM answers, and model routing | — | **owns** |
+| Durable memory about the user | — | **owns** |
+
+The two projects share no code. Arc Island imports nothing from Angelo —
+Angelo is Python, this is React Native, and the only thing crossing between
+them is JSON over `127.0.0.1`.
+
+### The call path
+
+```
+SystemScreen.tsx          UI + the System's persona and rules
+      ↓                   (systemPrompt() builds context per turn)
+aiClient.ts               stable entry point; describeFailure() for the UI
+      ↓
+providers/angelo.ts       THE ONLY FILE THAT KNOWS ANGELO'S HTTP SHAPE
+      ↓
+POST /v1/app/turn         {app, session, text?, context, tools, tool_results?}
+      ↓
+Angelo Core               conversation + memory + LLM
+```
+
+`aiClient.ts` holds the one line that picks the backend. Swapping the AI
+layer again means writing one new file that implements `AIProvider` and
+changing that line — not touching SystemScreen or tools.ts. That abstraction
+is why the move off OpenRouter was a new file plus a line, and it survived
+the migration deliberately.
+
+### Angelo never touches Arc Island's data
+
+This is the rule worth defending as this grows, and it is the same shape as
+"the reminder engine does not know the progression system exists" above.
+
+Angelo is handed **tool schemas**, not tool access. It replies with the
+calls it *wants*; `src/assistant/tools.ts` — unchanged by the migration —
+validates and executes each one and reports the result back. There is no
+path from Angelo into AsyncStorage, SecureStore, or any Arc Island model.
+
+```
+Angelo: "call register_quest with {title, date, time}"
+   ↓
+Arc Island: validates the date/time format, rejects if malformed,
+            executes against its own store, returns the outcome
+   ↓
+Angelo: reasons about the result and speaks
+```
+
+`propose_week` is the sharpest example of the principle, and it predates the
+migration: Angelo can propose an entire week, and proposing **commits
+nothing**. The blocks are inert until the user accepts them on the Quest
+Calendar. AI reasoning and application-state mutation stay separate — the
+model suggests, the user decides, Arc Island writes.
+
+### Context is sent per turn and never stored
+
+`systemPrompt(mode, reminders)` is rebuilt on every turn and passed as
+`context`. Angelo uses it for that one call and does not append it to
+history. A schedule snapshot is true at an instant and stale by the next
+exchange; keeping a copy would mean reasoning from an old calendar
+confidently. Arc Island's whole database is never sent — only the digest the
+current request needs.
+
+Angelo's own durable memory (what it remembers about the user across
+applications) is a separate thing and stays on Angelo's side. Arc Island
+does not duplicate it, and Angelo does not persist Arc Island's quests.
+
+### One conversation, one owner
+
+Angelo keeps the transcript, keyed by `(app, session)`. Arc Island keeps
+only `messages` — the UI bubbles — and a session name. There is deliberately
+no second copy of the conversation on this side; the `historyRef` that used
+to hold one was removed, because two sources of truth for the same
+conversation is exactly the failure this design avoids.
+
+### Failure is classified, and there is no fallback
+
+`AIProviderError` carries an `AIFailure` kind — `offline`,
+`unauthorized`, `backend_unavailable`, `timeout`, `malformed`,
+`bad_request` — and `describeFailure()` turns it into one sentence naming
+the thing to fix. "Angelo is offline" and "Angelo is up but its model isn't"
+send you to different windows, so they are different messages.
+
+If Angelo is unavailable, Arc Island **stops**. It never silently routes the
+user's data to a cloud model instead. A test asserts exactly one host is
+ever contacted.
+
+### The limitation to know about
+
+Angelo's Core binds to loopback and refuses to bind anywhere else. Arc
+Island's **web build on the same machine** can reach it; a **phone cannot**,
+and no client-side change fixes that. See `src/assistant/providerConfig.ts`,
+which documents it at the point where someone would otherwise try to
+"fix" it by hardcoding a LAN address.
+
+---
+
 ## The one rule that matters
 
 **The reminder engine does not know the progression system exists.**
