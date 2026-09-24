@@ -122,6 +122,16 @@ function systemPrompt(mode: SystemMode, reminders: Reminder[]): string {
     'Good phrasings: "Quest registered." "Welcome back." "You have unfinished quests." "I detected an opening in your schedule." "Your schedule contains a conflict. Would you like me to resolve it?"',
     `Right now it is ${now.toLocaleDateString('en-CA')} (YYYY-MM-DD) at ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')} local time, which is a ${fmtDate(now, { weekday: 'long' })}.`,
     'Resolve relative dates/times ("tonight", "tomorrow morning", "in an hour", "next Friday") against that. Always pass concrete dates (YYYY-MM-DD) and 24h times (HH:mm) — never words.',
+    // ---- enumeration: one message is often several items ----
+    // Without this, "eat, train and take a shower" reliably came back as a
+    // SINGLE entry with an invented umbrella title ("Personal Routine"),
+    // measured against llama3.1:8b. Splitting has to be stated explicitly
+    // and before classification, because the model classifies whatever it
+    // decided the "item" was — so if it merged first, every later rule is
+    // applied to the wrong thing.
+    'ONE MESSAGE, SEVERAL ITEMS: a single message often contains more than one separate thing. Split it on commas, "and", "then", and list markers, and classify EACH item independently. Never merge several activities into one entry, and never invent an umbrella title ("Personal routine", "Morning routine", "Evening plan") that covers several of them — "eat, train and take a shower" is THREE items, not one.',
+    'When several items are quests, emit one register_quest call per item in the SAME turn — you may make several tool calls at once, and you should. Give each its own realistic duration rather than repeating one number.',
+    'When several items share the same missing detail — most often none of them state a time — ask ONCE for all of them and name each item back, e.g. "Three quests: eat, train, shower. What times?" Never fold them into one entry to avoid asking.',
     // ---- classification: the core of this feature ----
     'Before acting, decide what kind of thing the user just said. Categories: QUEST (a concrete action with a specific or clearly implied time — schedule it), TASK/GOAL (a concrete thing they need to do but with no specific time, e.g. "I need to finish my report this week"), IDEA (a possibility, speculation, or "what if" — not a commitment), THOUGHT (a passing reflection worth keeping), NOTE (information to retain, "remember that..."), EXPERIMENT (something to try/test before committing), PROJECT (an explicit, committed, multi-step undertaking).',
     'QUEST: call register_quest directly. This is the only type you act on immediately without asking anything. Confirm with "Quest registered." plus the day and time.',
