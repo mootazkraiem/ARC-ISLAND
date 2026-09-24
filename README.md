@@ -298,6 +298,15 @@ an app limitation. The fastest real path to a native notification test is
 
 ## 🎙️ Arc Island — the real talking assistant (round 3)
 
+> **⚠️ Superseded by round 14 (see the top of this file).** Everything below
+> about OpenRouter — the API key, the free model router, the request caps,
+> the per-minute transcription billing — describes how this worked *before*
+> the assistant moved to Angelo, and is kept as a record of that round, not
+> as setup instructions. There is no OpenRouter key to obtain any more. The
+> tool-calling design, the System's voice and the classification rules are
+> all still accurate and still in force.
+
+
 Tap the mic icon next to "+ Add" on Home to open **Arc Island**, a proper
 voice conversation, not a keyboard trick:
 
