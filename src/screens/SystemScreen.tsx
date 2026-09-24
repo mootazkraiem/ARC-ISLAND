@@ -31,8 +31,13 @@ import { SystemPanel } from '../components/SystemPanel';
 import { SystemGlyph } from '../components/SystemGlyph';
 import { WorldBackground } from '../components/world/WorldBackground';
 import { ListeningWave } from '../components/NudgeVoiceViz';
-import { resolveApiKey } from '../assistant/apiKeyStore';
-import { ChatMessage, chatCompletion, transcribeAudio } from '../assistant/aiClient';
+import { resolveCoreToken } from '../assistant/apiKeyStore';
+import {
+  ToolResult,
+  describeFailure,
+  resetConversation,
+  turn as angeloTurn,
+} from '../assistant/aiClient';
 import { executeTool, toolDefinitions } from '../assistant/tools';
 import { CompletionResult } from '../progression/types';
 import { ForgeBlock, WeekProposal, describeConflicts } from '../system/forge';
@@ -48,11 +53,14 @@ import { occurrencesForDay, toISODate } from '../calendar/occurrences';
 // second mode — the OVERNIGHT SESSION — in which it listens to a long
 // description of a week and forges a proposed schedule.
 //
-// $0 GUARANTEE (unchanged and re-verified): on web, voice capture AND
-// speech-to-text both happen inside the browser via the Web Speech API
-// (src/webSpeechRecognition.ts). No audio ever leaves the machine and
-// transcribeAudio() throws if it is ever reached from web. Chat uses
-// OpenRouter's free router only.
+// $0 GUARANTEE (now absolute): on web, voice capture AND speech-to-text
+// both happen inside the browser via the Web Speech API
+// (src/webSpeechRecognition.ts) — no audio ever leaves the machine. Chat
+// goes to Angelo, the local AI core on this machine, which runs the model
+// itself. Nothing in this screen calls a cloud service any more, and
+// there is no paid transcription path left to reach: native voice input
+// is disabled pending an audio route on Angelo's Core API (see
+// stopRecordingAndRespond below).
 // ─────────────────────────────────────────────────────────────────────────
 
 export type SystemMode = 'converse' | 'forge';
@@ -255,7 +263,11 @@ export function SystemScreen({
   const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
   const webSpeechRef = useRef<WebSpeechSession | null>(null);
   const webSpeechGotResultRef = useRef(false);
-  const historyRef = useRef<ChatMessage[]>([]);
+  // Arc Island no longer keeps the model's conversation. Angelo owns it,
+  // keyed by app + session, so there is exactly one source of truth for
+  // what has been said. `messages` above is the UI transcript and nothing
+  // more; this ref is only the name of the conversation to continue.
+  const sessionRef = useRef<string>(`system-${Date.now().toString(36)}`);
   const remindersRef = useRef(reminders);
   remindersRef.current = reminders;
   const modeRef = useRef(mode);
@@ -264,12 +276,19 @@ export function SystemScreen({
   const greetedRef = useRef(false);
 
   useEffect(() => {
-    resolveApiKey().then((k) => setHasKey(!!k));
+    resolveCoreToken().then((t) => setHasKey(!!t));
     loadSilenceMs();
+    const session = sessionRef.current;
     return () => {
       Speech.stop();
       recorder.stop().catch(() => {});
       webSpeechRef.current?.stop();
+      // Leaving the System ends this conversation on Angelo's side too,
+      // so a Core that runs for days does not accumulate the transcript
+      // of every exchange Arc Island has ever had. Angelo bounds these
+      // anyway (oldest-used is evicted); this just means the boundary is
+      // where the user actually drew it. Never awaited and never throws.
+      resetConversation(session);
     };
   }, []);
 
@@ -348,32 +367,36 @@ export function SystemScreen({
     });
   };
 
-  const runConversationTurn = async (userText: string, apiKey: string) => {
-    historyRef.current.push({ role: 'user', content: userText });
+  const runConversationTurn = async (userText: string) => {
     setOrbState('thinking');
 
-    const buildMessages = (): ChatMessage[] => [
-      { role: 'system', content: systemPrompt(modeRef.current, remindersRef.current) },
-      // Forge sessions are long by nature — keep more turns than a normal
-      // exchange so the System still remembers what was said at the start
-      // of the planning conversation when it finally proposes.
-      ...historyRef.current.slice(modeRef.current === 'forge' ? -24 : -10),
-    ];
+    // The System's instructions plus a snapshot of the world as it is at
+    // this instant. Rebuilt every turn and never stored by Angelo: a
+    // schedule digest is true now and stale by the next exchange, so
+    // re-sending it is both cheaper and more honest than having Angelo
+    // keep a copy (see angelo/apps.py on why context stays out of
+    // history).
+    const context = () => systemPrompt(modeRef.current, remindersRef.current);
 
     try {
-      let response = await chatCompletion(buildMessages(), toolDefinitions, apiKey);
+      let response = await angeloTurn({
+        session: sessionRef.current,
+        text: userText,
+        context: context(),
+        tools: toolDefinitions,
+      });
 
       // Allow a short chain of tool rounds — forging often needs to read
       // progress or list quests before proposing. Hard-capped so a
-      // confused free model can never spin.
+      // confused model can never spin.
+      //
+      // Arc Island runs every tool itself and reports the result back.
+      // Angelo decides WHAT should happen; Arc Island decides whether it
+      // may, and is the only side that touches Arc Island's data.
       let rounds = 0;
       while (response.tool_calls && response.tool_calls.length > 0 && rounds < 3) {
         rounds += 1;
-        historyRef.current.push({
-          role: 'assistant',
-          content: response.content ?? null,
-          tool_calls: response.tool_calls,
-        });
+        const results: ToolResult[] = [];
 
         for (const call of response.tool_calls) {
           const result = await executeTool(call.function.name, call.function.arguments, {
@@ -391,39 +414,45 @@ export function SystemScreen({
               `${(result as any).proposed} quests proposed — review them on the Quest Calendar.`
             );
           }
-          historyRef.current.push({
-            role: 'tool',
-            tool_call_id: call.id,
-            content: JSON.stringify(result),
-          });
+          results.push({ id: call.id, name: call.function.name, content: result });
         }
 
-        response = await chatCompletion(buildMessages(), toolDefinitions, apiKey);
+        response = await angeloTurn({
+          session: sessionRef.current,
+          context: context(),
+          tools: toolDefinitions,
+          toolResults: results,
+        });
       }
 
       const finalText = response.content?.trim() || 'Acknowledged.';
-      historyRef.current.push({ role: 'assistant', content: finalText });
       pushBubble('system', finalText);
       await speak(finalText);
     } catch (e: any) {
-      const msg = e?.message || 'The connection to the System failed.';
-      pushBubble('system', `Signal lost: ${msg}`);
+      // A person gets the one sentence that says what to do about it; the
+      // technical detail goes to the log, not to the transcript.
+      if (__DEV__) console.warn('[Angelo] turn failed:', e?.detail ?? e?.message ?? e);
+      pushBubble('system', describeFailure(e));
       setOrbState('idle');
     }
   };
 
   const startRecording = async () => {
-    const key = await resolveApiKey();
-    if (!key) {
-      safeAlert('The System is dormant', 'Add an OpenRouter API key in Settings to bring the System online.');
+    const token = await resolveCoreToken();
+    if (!token) {
+      safeAlert(
+        'The System is dormant',
+        "Add Angelo's Core token in Settings to bring the System online."
+      );
       onOpenSettings();
       return;
     }
 
     // ---- WEB: browser SpeechRecognition, strictly $0, no audio upload ----
     // Voice on web never touches expo-audio, never records a file, and
-    // never calls OpenRouter's paid Whisper endpoint — the browser itself
-    // captures the mic and returns text directly.
+    // never uploads audio anywhere — the browser itself captures the mic
+    // and returns text directly. The transcript then goes to Angelo as
+    // ordinary text, exactly as if it had been typed.
     if (Platform.OS === 'web') {
       if (!isWebSpeechSupported()) {
         safeAlert(
@@ -443,7 +472,7 @@ export function SystemScreen({
             webSpeechGotResultRef.current = true;
             setLive(null);
             pushBubble('user', transcript);
-            runConversationTurn(transcript, key);
+            runConversationTurn(transcript);
           },
           onInterim: (committed, pending) => setLive({ committed, pending }),
           onError: (message) => {
@@ -493,26 +522,29 @@ export function SystemScreen({
       return;
     }
 
-    // ---- NATIVE (iOS/Android): unchanged ----
-    setOrbState('thinking');
+    // ---- NATIVE (iOS/Android): voice input is Phase 2 ----
+    //
+    // This used to record a clip and send it to OpenRouter's Whisper — a
+    // PAID endpoint on a cloud account. Moving the assistant to Angelo
+    // removes that account, so keeping this path alive would mean either
+    // silently retaining a cloud dependency the migration exists to
+    // remove, or inventing an Angelo audio endpoint that does not exist.
+    //
+    // Angelo does have speech-to-text (angelo/stt.py, faster-whisper
+    // locally) — but its Core API exposes no audio route: /v1 carries
+    // text, device-state and events, nothing else. So the honest state is
+    // "not wired yet", and it says so rather than failing obscurely.
+    // Typing works on native; web voice is unaffected and still free.
     try {
       await recorder.stop();
-      const uri = recorder.uri;
-      if (!uri) throw new Error('No audio captured.');
-      const key = await resolveApiKey();
-      if (!key) throw new Error('Missing API key.');
-      const transcript = await transcribeAudio(uri, key);
-      if (!transcript) {
-        pushBubble('system', 'I did not catch that.');
-        setOrbState('idle');
-        return;
-      }
-      pushBubble('user', transcript);
-      await runConversationTurn(transcript, key);
-    } catch (e: any) {
-      pushBubble('system', `I could not resolve that: ${e?.message ?? e}`);
-      setOrbState('idle');
+    } catch {
+      // Nothing was captured; there is nothing to clean up.
     }
+    setOrbState('idle');
+    pushBubble(
+      'system',
+      'Voice input is not yet routed through Angelo on this platform. Type to me instead.'
+    );
   };
 
   const handleOrbPress = () => {
@@ -527,15 +559,18 @@ export function SystemScreen({
   const submitTyped = async () => {
     const trimmed = typedText.trim();
     if (!trimmed || orbState === 'thinking') return;
-    const key = await resolveApiKey();
-    if (!key) {
-      safeAlert('The System is dormant', 'Add an OpenRouter API key in Settings to bring the System online.');
+    const token = await resolveCoreToken();
+    if (!token) {
+      safeAlert(
+        'The System is dormant',
+        "Add Angelo's Core token in Settings to bring the System online."
+      );
       onOpenSettings();
       return;
     }
     setTypedText('');
     pushBubble('user', trimmed);
-    await runConversationTurn(trimmed, key);
+    await runConversationTurn(trimmed);
   };
 
   // See the TextInput below: a multiline field swallows Enter, so the send
@@ -677,7 +712,7 @@ export function SystemScreen({
             <Pressable onPress={onOpenSettings}>
               <SystemPanel tone="danger" bracket={12} style={styles.notice}>
                 <Text style={styles.noticeText}>
-                  The System is dormant. Add an OpenRouter key to bring it online.
+                  The System is dormant. Add Angelo's Core token to bring it online.
                 </Text>
               </SystemPanel>
             </Pressable>

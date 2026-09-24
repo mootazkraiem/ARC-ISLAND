@@ -13,8 +13,8 @@ import {
 import { theme, colors } from '../theme';
 import { WorldBackground } from '../components/world/WorldBackground';
 import { SystemGlyph } from '../components/SystemGlyph';
-import { clearApiKey, getApiKey, setApiKey } from '../assistant/apiKeyStore';
-import { PROVIDER_CONFIG } from '../assistant/providerConfig';
+import { clearCoreToken, getCoreToken, setCoreToken } from '../assistant/apiKeyStore';
+import { CORE_TOKEN_PATH_HINT, PROVIDER_CONFIG } from '../assistant/providerConfig';
 import { SILENCE_CHOICES, getSilenceMs, loadSilenceMs, setSilenceMs } from '../voicePrefs';
 
 export function SettingsScreen({ onBack }: { onBack: () => void }) {
@@ -29,7 +29,7 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     (async () => {
       setSilence(await loadSilenceMs());
-      const existing = await getApiKey();
+      const existing = await getCoreToken();
       if (existing) {
         setHasExisting(true);
         setKey(existing);
@@ -39,14 +39,14 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
 
   const handleSave = async () => {
     if (!key.trim()) return;
-    await setApiKey(key.trim());
+    await setCoreToken(key.trim());
     setSaved(true);
     setHasExisting(true);
     setTimeout(() => setSaved(false), 1800);
   };
 
   const handleClear = async () => {
-    await clearApiKey();
+    await clearCoreToken();
     setKey('');
     setHasExisting(false);
   };
@@ -62,24 +62,30 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
 
         <Text style={styles.heading}>System Settings</Text>
         <Text style={styles.subtitle}>
-          The System uses OpenRouter to hear you and reply, defaulting to OpenRouter's free
-          model router — no OpenAI account needed. Your key is stored only on this device and
-          every call goes straight from your phone to OpenRouter — nothing passes through a
-          server we run.
+          The System thinks through Angelo — your own AI core, running as a separate process on
+          your machine. Angelo picks the model (Ollama locally by default) and keeps the
+          conversation; Arc Island keeps your quests. Nothing leaves this machine, there is no
+          cloud account, and there are no request limits.
         </Text>
+        <Text style={styles.subtitle}>Start it with:</Text>
+        <Text style={styles.mono}>python -m angelo.core</Text>
+        <Text style={styles.subtitle}>
+          Then paste the token it prints the location of. It lives at:
+        </Text>
+        <Text style={styles.mono}>{CORE_TOKEN_PATH_HINT}</Text>
 
-        {!hasExisting && !!PROVIDER_CONFIG.devDefaultApiKey && (
+        {!hasExisting && !!PROVIDER_CONFIG.devDefaultToken && (
           <Text style={styles.devDefaultNote}>
-            A local development key is pre-configured right now (from .env) — Arc Island is
-            already online. Save a key below only if you want to override it.
+            A local development token is pre-configured right now (from .env) — Arc Island is
+            already online. Save a token below only if you want to override it.
           </Text>
         )}
 
-        <Text style={styles.label}>OPENROUTER API KEY</Text>
+        <Text style={styles.label}>ANGELO CORE TOKEN</Text>
         <TextInput
           value={key}
           onChangeText={setKey}
-          placeholder="sk-or-v1-..."
+          placeholder="paste the contents of core.token"
           placeholderTextColor={theme.colors.textFaint}
           style={styles.input}
           autoCapitalize="none"
@@ -88,18 +94,16 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
         />
 
         <Pressable style={[styles.btn, styles.saveBtn]} onPress={handleSave}>
-          <Text style={styles.saveBtnText}>{saved ? 'Saved ✓' : 'Save Key'}</Text>
+          <Text style={styles.saveBtnText}>{saved ? 'Saved ✓' : 'Save Token'}</Text>
         </Pressable>
 
         {hasExisting && (
           <Pressable style={[styles.btn, styles.clearBtn]} onPress={handleClear}>
-            <Text style={styles.clearBtnText}>Remove Key</Text>
+            <Text style={styles.clearBtnText}>Remove Token</Text>
           </Pressable>
         )}
 
-        <Pressable onPress={() => Linking.openURL('https://openrouter.ai/keys')}>
-          <Text style={styles.link}>Get a free API key at openrouter.ai/keys ↗</Text>
-        </Pressable>
+        <Text style={styles.link}>Angelo Core: {PROVIDER_CONFIG.coreUrl}</Text>
 
         {Platform.OS === 'web' && (
           <View style={styles.voiceBox}>
@@ -137,13 +141,23 @@ export function SettingsScreen({ onBack }: { onBack: () => void }) {
         <View style={styles.costBox}>
           <Text style={styles.costTitle}>Roughly what this costs</Text>
           <Text style={styles.costBody}>
-            Replies use OpenRouter's free model router by default — $0, capped at 50 requests/day
-            (1000/day if you ever add $10 of OpenRouter credit).
+            Nothing. Angelo runs the model on your own machine, so there is no per-request cost
+            and no daily cap — replies are limited only by how fast your machine thinks.
             {Platform.OS === 'web'
-              ? " Voice on the web uses your browser's own built-in speech recognition, not this key — it's always $0 and never sends audio anywhere."
-              : " Voice transcription isn't free on OpenRouter yet — it's billed a small per-minute Whisper rate on this same key. A typical \"claim a quest\" exchange still costs well under a cent."}
+              ? " Voice on the web uses your browser's own built-in speech recognition — always $0, and no audio ever leaves this machine."
+              : " Voice input isn't routed through Angelo yet on this platform, so type to the System here. The paid cloud transcription this used to use has been removed rather than left running."}
           </Text>
         </View>
+        {Platform.OS !== 'web' && (
+          <View style={styles.costBox}>
+            <Text style={styles.costTitle}>On a phone, this will say offline</Text>
+            <Text style={styles.costBody}>
+              Angelo's Core only ever listens on its own machine's loopback address, by design.
+              A phone cannot reach it — "localhost" on this device means this device. Run Arc
+              Island's web build on the same computer as Angelo to use the System today.
+            </Text>
+          </View>
+        )}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -168,6 +182,10 @@ const styles = StyleSheet.create({
   backRow: { marginBottom: theme.spacing(4) },
   backText: { color: colors.signal, fontSize: 16, fontWeight: '600' },
   heading: { ...theme.font.title, color: theme.colors.text, marginBottom: theme.spacing(2) },
+  mono: {
+    fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }),
+    color: theme.colors.text,
+  },
   subtitle: {
     ...theme.font.body,
     color: theme.colors.textDim,

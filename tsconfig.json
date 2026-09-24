@@ -1,6 +1,11 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true
+    "strict": true,
+    // jest + node globals, for the test files under src/**/__tests__.
+    // expo/tsconfig.base doesn't include either, so without this the
+    // suite typechecks as if `describe`, `expect` and `global` did not
+    // exist — while running perfectly well under jest.
+    "types": ["jest", "node"]
   }
 }

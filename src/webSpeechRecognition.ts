@@ -3,14 +3,18 @@
 // input on the web build at strictly $0: the browser itself captures the
 // microphone AND turns it into text — on-device or via the browser
 // vendor's own free recognition service, depending on the browser. Nothing
-// is ever recorded to a file or uploaded to OpenRouter (or anywhere else)
-// from this path, so it cannot generate any billing whatsoever.
+// is ever recorded to a file or uploaded anywhere from this path, so it
+// cannot generate any billing whatsoever.
 //
-// Completely separate from native iOS/Android voice
-// (src/assistant/providers/openrouter.ts's transcribeAudio, backed by the
-// paid openai/whisper-1 model on OpenRouter) — this file is never imported
-// by anything on the native path, and every function here is a no-op/false
-// on native anyway since `window` doesn't exist there.
+// This is now the ONLY voice-input path Arc Island has. The native
+// iOS/Android path used to send a recorded clip to OpenRouter's paid
+// Whisper endpoint; that provider was removed when the assistant moved to
+// Angelo, and native voice is disabled rather than silently kept on a
+// cloud account (see SystemScreen's stopRecordingAndRespond). Angelo does
+// have local speech-to-text, but its Core API exposes no audio route yet.
+//
+// Every function here is a no-op/false on native anyway, since `window`
+// doesn't exist there.
 //
 // ─────────────────────────────────────────────────────────────────────────
 // WHY THIS IS NOT A THIN WRAPPER: THE INTERRUPTION PROBLEM
