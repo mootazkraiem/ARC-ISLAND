@@ -9,8 +9,118 @@ design writeup (domain models, event flow, how to extend it). This file is
 the setup/run guide; that one is the "how it's built and why" doc.
 
 Still true: **native local notifications**, no backend, no accounts, no
-cloud for the reminder engine itself — the only network calls in the whole
-app are Arc Island's voice requests to OpenRouter, using your own key.
+cloud. As of round 14 that is now literal: the assistant runs on Angelo,
+your own local AI core, so the only network call the app makes is to
+`127.0.0.1` — nothing leaves the machine at all.
+
+## 🧠 Arc Island now thinks through Angelo (round 14)
+
+The System no longer calls a cloud model. Arc Island's assistant runs on
+**Angelo** — the local AI core in the separate `ConsoleApp1` project — over
+a loopback HTTP API. OpenRouter is gone from the runtime entirely: no cloud
+account, no API key, no per-request cost, no daily cap, and nothing leaves
+this machine.
+
+### The boundary
+
+```
+        USER
+          ↓
+     ARC ISLAND          quests · calendar · XP · streaks · Idea Vault · UI
+          ↓              (owns all application state, and every write to it)
+   AngeloProvider        src/assistant/providers/angelo.ts — the ONLY file
+          ↓              in Arc Island that knows Angelo's HTTP shape
+      HTTP /v1
+          ↓
+     ANGELO CORE         conversation · context · memory · LLM · model choice
+```
+
+The two projects are **not merged and share no code**. Arc Island imports
+nothing from Angelo; it is an HTTP client. Angelo has no access to Arc
+Island's data — it is handed tool *schemas* and replies with the calls it
+wants, and Arc Island validates and executes every one of them itself
+(`src/assistant/tools.ts`, unchanged). Angelo owns the conversation; Arc
+Island owns the quests.
+
+### What you need to run it
+
+1. **Start Angelo's Core** (in the Angelo project):
+   ```powershell
+   python -m angelo.core
+   ```
+   It prints where its token lives — `%LOCALAPPDATA%\Angelo\core.token`.
+   Angelo's own backend must be up too: `ollama serve`, with the model its
+   config names (`llama3.1:8b` by default — it must support tool calling).
+2. **Give Arc Island the token**, either in Settings, or in `.env`:
+   ```
+   EXPO_PUBLIC_ANGELO_CORE_TOKEN=<contents of core.token>
+   ```
+3. **Run Arc Island's web build on the same computer**:
+   ```bash
+   npm install
+   npx expo start --web
+   ```
+
+### ⚠️ This works on the web build, not on a phone
+
+Angelo's Core binds to `127.0.0.1` and **refuses to bind anywhere else** —
+that is deliberate in Angelo (`angelo/core/__main__.py` exits rather than
+listen on a LAN address; a network-reachable Core is a different product
+with a different threat model). So:
+
+| Where Arc Island runs | Reaches Angelo? |
+|---|---|
+| Web build, same PC as Angelo | ✅ yes — the supported setup today |
+| iPhone/Android via Expo Go | ❌ no — `localhost` on a phone means the phone |
+
+There is no client-side trick that fixes this, and Arc Island does not
+pretend otherwise: on a phone the System says **"Angelo is offline"**, which
+is the truth. Pointing `EXPO_PUBLIC_ANGELO_CORE_URL` at the PC's LAN IP does
+not help, because the Core will not listen on one. Making Angelo reachable
+from another device is Angelo's decision to make, not Arc Island's.
+
+### Voice
+
+- **Web voice is unchanged and still free.** The browser's own Web Speech
+  API captures the mic and returns text on-device; the transcript then goes
+  to Angelo as ordinary text. No audio leaves the machine.
+- **Native voice is disabled, and says so.** It used to upload a recording
+  to OpenRouter's **paid** Whisper endpoint. Moving to Angelo removes that
+  account, and rather than silently keeping a cloud dependency the whole
+  migration exists to remove — or inventing an Angelo audio endpoint that
+  does not exist — the path is switched off with a clear message. Angelo
+  does have local speech-to-text, but its Core API exposes no audio route.
+  Typing works everywhere. This is Phase 2.
+
+### When something is wrong, it says which thing
+
+Failures are classified rather than dumped as a status code, because
+"Angelo is offline" and "Angelo is up but Ollama isn't" send you to two
+different windows:
+
+| What happened | What the System says |
+|---|---|
+| Nothing listening on the Core's port | Angelo is offline. Start the Core, then try again. |
+| Token missing or rejected (401) | Angelo refused Arc Island's token. Re-enter it in Settings. |
+| Core up, model backend down (503) | Angelo is running but its model is not responding. |
+| Turn exceeded 120s | Angelo took too long to answer. |
+| Unreadable/malformed reply | Angelo answered with something unreadable. |
+
+**There is no fallback to another AI service.** If Angelo is unavailable Arc
+Island fails gracefully and stops — it never quietly routes your data to a
+cloud model instead. A test asserts this (`never falls back to another AI
+service`).
+
+### Testing
+
+Arc Island now has a test suite (it had none before):
+
+```bash
+npm test          # 33 tests covering the Angelo adapter
+npx tsc --noEmit  # clean
+```
+
+Angelo's own suite covers the Core side (`tests/test_core_app_turn.py`).
 
 ## ⬆️ Expo SDK 51 → 57 upgrade (round 6)
 
@@ -483,8 +593,13 @@ layer (new idea kinds, multi-task projects, etc.) later.
   sense — for guaranteed reboot survival, build a standalone app with
   `eas build` later.
 - No calendar/list view beyond "sorted upcoming" — out of scope for MVP.
-- Arc Island requires internet + a free OpenRouter key (see above) — chat replies
-  cost nothing by default; only voice transcription is billed.
+- Arc Island's assistant requires **Angelo's Core running on the same
+  machine**, plus Angelo's own model backend (`ollama serve`). It costs
+  nothing and needs no internet — but it does not work from a phone, because
+  Angelo's Core is loopback-only by design. See round 14 above.
+- Native voice input is disabled pending an audio route on Angelo's Core
+  API. Web voice (browser Web Speech API) is unaffected. Typing works
+  everywhere.
 - The progression system's edge cases (what exactly "The Finisher" counts,
   why the day recap isn't a literal midnight job, why unlock timestamps
   aren't retroactive) are documented honestly in **ARCHITECTURE.md** rather
@@ -498,8 +613,18 @@ npx expo install --fix   # aligns every package to your exact Expo SDK version
 npx expo start --tunnel
 ```
 Scan the QR with your iPhone camera → opens in Expo Go → grant notifications
-permission → (optional) tap 🎙️ → ⚙︎ → paste a free OpenRouter key → grant
-microphone permission the first time you tap the orb.
+permission. Reminders, quests, XP and the Idea Vault all work fully offline
+on a phone.
+
+**The System (the AI assistant) will not work on a phone** — it needs
+Angelo's Core, which only listens on its own machine. For the assistant, run
+the web build on the same computer as Angelo instead:
+```bash
+python -m angelo.core   # in the Angelo project, first
+npx expo start --web    # here
+```
+See round 14 at the top of this file for the token setup and why the phone
+limitation is structural rather than a missing feature.
 
 ## Project structure
 ```
@@ -513,11 +638,12 @@ src/nlParse.ts                  — free/offline quick-add natural-language pars
 src/screens/HomeScreen.tsx       — list + empty state + quick add + filters + add button
 src/screens/EditorScreen.tsx     — create/edit form
 src/screens/AssistantScreen.tsx  — Arc Island: record → transcribe → chat+tools → speak
-src/screens/SettingsScreen.tsx   — OpenRouter API key entry (SecureStore)
-src/assistant/provider.ts        — AIProvider interface + shared chat/tool types (provider-agnostic)
-src/assistant/providerConfig.ts  — which provider/models Arc Island uses, + optional .env dev-key default
-src/assistant/providers/openrouter.ts — OpenRouter implementation of AIProvider (transcribe + chat+tools)
-src/assistant/aiClient.ts        — stable entry point AssistantScreen calls through
+src/screens/SettingsScreen.tsx   — Angelo Core token entry (SecureStore)
+src/assistant/provider.ts        — AIProvider interface + turn/tool/failure types (backend-agnostic)
+src/assistant/providerConfig.ts  — where Angelo is, + optional .env dev token; the mobile limitation is documented here
+src/assistant/providers/angelo.ts — Angelo Core adapter: the ONLY file that knows Angelo's HTTP shape
+src/assistant/aiClient.ts        — stable entry point SystemScreen calls through, + describeFailure()
+src/assistant/__tests__/angelo.test.ts — 33 tests over the adapter contract
 src/assistant/tools.ts           — add/list/complete/delete tool schemas + executor
 src/assistant/apiKeyStore.ts     — SecureStore wrapper + resolveApiKey() (manual key, else .env default)
 src/components/*                — ReminderCard, EmptyState, RepeatSelector, CategorySelector, PulseOrb
