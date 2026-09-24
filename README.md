@@ -13,6 +13,71 @@ cloud. As of round 14 that is now literal: the assistant runs on Angelo,
 your own local AI core, so the only network call the app makes is to
 `127.0.0.1` — nothing leaves the machine at all.
 
+## Quick start (and what runs where)
+
+```bash
+npm install
+npx expo start --web      # the supported way to use the assistant today
+```
+
+The System (the AI assistant) talks to **Angelo**, a separate local AI
+service — see the round 14 section below for the full picture. Angelo is
+**not** part of this repository and is never bundled into it; Arc Island is
+an HTTP client of it.
+
+To use the assistant you need Angelo's Core running on the same machine:
+
+```powershell
+cd <angelo project>
+.venv_test\Scripts\python.exe -m angelo.core
+```
+
+…plus Angelo's own model backend (`ollama serve`). Then put Angelo's token
+in Settings, or in `.env` (see `.env.example`). Nothing leaves the machine
+and there is no cloud account.
+
+**Everything that is not the assistant — quests, reminders, notifications,
+the Quest Calendar, XP, streaks, cards, the Idea Vault — works standalone
+with no Angelo and no network at all.**
+
+### ⚠️ On iPhone, the assistant cannot reach Angelo
+
+Angelo's Core binds to `127.0.0.1` and **refuses to bind to anything else**
+by design. `localhost` on a phone means *the phone*, so an iPhone cannot
+reach an Angelo running on a Windows PC — and pointing
+`EXPO_PUBLIC_ANGELO_CORE_URL` at the PC's LAN IP does not help, because the
+Core will not listen on one.
+
+| Where Arc Island runs | Assistant works? | Everything else |
+|---|---|---|
+| Web build, same machine as Angelo | ✅ | ✅ |
+| iPhone / Android device | ❌ shows "Angelo is offline" | ✅ fully works |
+
+This is a structural property of Angelo, not a missing feature here, and
+Arc Island does not fake around it. Changing it is a decision on the Angelo
+side (an explicitly-configured non-loopback bind, or a tunnel), with a
+different threat model.
+
+### Building for iOS
+
+The iOS build is done on a Mac with Apple's tooling and Expo's — none of it
+happens in this repository, and no Apple credentials are stored here. After
+cloning on the Mac:
+
+```bash
+npm install
+npx expo install --fix     # align to that machine's SDK
+npx expo-doctor            # should report all checks passing
+npx eas init               # creates the EAS projectId (not committed here)
+npx eas build --platform ios --profile preview
+```
+
+You will need an Apple Developer account for a device build; `eas build`
+prompts for it and manages the signing credentials on Expo's side. The
+`preview` profile is the one to use for installing on a device — the
+`development` profile in `eas.json` expects `expo-dev-client`, which is not
+a dependency of this project.
+
 ## 🧠 Arc Island now thinks through Angelo (round 14)
 
 The System no longer calls a cloud model. Arc Island's assistant runs on
